@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0052F5">
+<title>JEUX-DI !</title>
+<link rel="icon" href="sceau.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icone-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="JEUX-DI !">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Charte Carasso : Bleu Carasso dominant, encre bleu nuit, accents des palettes d'axes. Montserrat seule. */
+  /* Mise en page : une colonne de 560px max ; scène bleue en haut, feuille blanche qui glisse dessus. */
+  --bleu:#0052F5; --nuit:#00194A; --blanc:#FFFFFF;
+  --brume:#EEF3FF; --trait:#D6DFF5; --sourd:#4E5F88;
+  --ambre:#FDB035; --jaune:#FBDB65; --vert:#AAC462; --beige:#D1996A; --turquoise:#24C0B5; --corail:#FE8675;
+  --font:"Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  color-scheme: light;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:var(--font);background:var(--bleu);color:var(--nuit);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+input{font:inherit}
+:focus-visible{outline:3px solid var(--ambre);outline-offset:2px}
+[hidden]{display:none!important}
+svg.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+
+.view{min-height:100%;display:flex;flex-direction:column;max-width:560px;margin:0 auto;position:relative}
+
+/* ---------- Avatars : tête détourée sur disque de couleur ---------- */
+.av{--s:56px;position:relative;width:var(--s);height:var(--s);flex:none;display:inline-block}
+.av::before{content:"";position:absolute;inset:0;border-radius:50%;background:var(--disc,var(--bleu));transition:box-shadow .18s}
+.av>.clip{position:absolute;inset:0;border-radius:50%;overflow:hidden}
+.av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;-webkit-user-drag:none;pointer-events:none}
+.av.pop>.clip{top:-28%;border-radius:0 0 999px 999px}
+.av.pop img{width:116%;height:auto;left:-8%;top:auto;bottom:0}
+.av.anneau::before{box-shadow:0 0 0 4px var(--blanc)}
+.initiales{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:calc(var(--s)*.36);color:var(--nuit);letter-spacing:-.02em}
+
+/* ---------- Accueil ---------- */
+.scene{position:relative;padding:calc(22px + env(safe-area-inset-top)) 20px 30px;color:var(--blanc);overflow:hidden}
+.logo{display:block;width:230px;height:83px;color:var(--blanc);fill:currentColor}
+.titre{font-weight:800;font-size:clamp(50px,17vw,92px);line-height:.9;letter-spacing:-.035em;margin-top:34px;white-space:nowrap}
+.titre .ex{color:var(--ambre)}
+.accroche{font-weight:500;font-size:17px;margin-top:12px;max-width:24ch}
+.des{position:absolute;right:12px;top:calc(24px + env(safe-area-inset-top));width:76px;height:70px}
+.des svg{position:absolute;width:44px;height:44px}
+.des .d1{right:0;top:0;transform:rotate(16deg)}
+.des .d2{left:0;bottom:0;transform:rotate(-12deg)}
+.des .face{fill:var(--blanc)} .des .d2 .face{fill:var(--ambre)}
+.des .pip{fill:var(--bleu)} .des .d2 .pip{fill:var(--nuit)}
+
+.feuille-page{background:var(--blanc);border-radius:28px 28px 0 0;flex:1;padding:24px 16px 8px;display:flex;flex-direction:column;gap:26px}
+.rubrique{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.rubrique h2{font-size:13px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:var(--bleu);display:flex;align-items:center;gap:8px}
+.compte{background:var(--bleu);color:var(--blanc);border-radius:999px;min-width:24px;height:24px;padding:0 7px;font-size:13px;display:inline-grid;place-items:center;letter-spacing:0;font-variant-numeric:tabular-nums}
+.lien{color:var(--bleu);font-weight:700;font-size:14px;padding:8px 4px;text-decoration:underline;text-underline-offset:3px}
+.lien:disabled{color:var(--trait);cursor:default}
+
+.plateau{list-style:none;display:flex;gap:10px;overflow-x:auto;padding:22px 4px 6px;margin:0 -4px;scrollbar-width:none;min-height:110px}
+.plateau::-webkit-scrollbar{display:none}
+.plateau-vide{flex:1;border:2px dashed var(--trait);border-radius:16px;padding:14px 16px;color:var(--sourd);font-size:14px;font-weight:500;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.4}
+.jeton{display:flex;flex-direction:column;align-items:center;gap:7px;width:66px;animation:entre .28s cubic-bezier(.2,.9,.3,1.3) both}
+.jeton .av{--s:54px}
+.jeton .x{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:var(--nuit);color:var(--blanc);display:grid;place-items:center;z-index:3;box-shadow:0 0 0 2px var(--blanc)}
+.jeton .x svg{width:12px;height:12px;stroke-width:3.4}
+.jeton .nom{font-size:12px;font-weight:700;max-width:66px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@keyframes entre{from{opacity:0;transform:scale(.6)}}
+
+
+.equipe{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:14px 4px;padding-top:16px}
+.equipe li{position:relative}
+.carte{width:100%;display:flex;flex-direction:column;align-items:center;gap:9px;padding:20px 2px 8px;border-radius:18px;transition:background .15s}
+.carte .av{--s:72px;transition:transform .15s}
+.carte:active .av{transform:scale(.93)}
+.carte .nom{font-size:14px;font-weight:700;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.carte[aria-pressed="true"]{background:var(--brume)}
+.carte[aria-pressed="true"] .av::before{box-shadow:0 0 0 3px var(--blanc),0 0 0 6px var(--bleu)}
+.pastille{position:absolute;right:-6px;bottom:-3px;width:28px;height:28px;border-radius:50%;background:var(--blanc);border:2px solid var(--bleu);color:var(--bleu);display:grid;place-items:center;z-index:3}
+.pastille svg{width:15px;height:15px;stroke-width:3.4}
+.carte[aria-pressed="true"] .pastille{background:var(--bleu);color:var(--blanc)}
+.carte .ok{display:none} .carte[aria-pressed="true"] .ok{display:block} .carte[aria-pressed="true"] .add{display:none}
+.carte.invite .av::before{background:var(--brume);border:2px dashed var(--bleu)}
+.carte.invite .av{display:grid;place-items:center;color:var(--bleu)}
+.carte.invite .av svg{position:relative;width:28px;height:28px}
+.suppr{position:absolute;top:6px;left:6px;width:28px;height:28px;border-radius:50%;background:var(--blanc);color:var(--sourd);display:grid;place-items:center;z-index:4;border:1px solid var(--trait)}
+.suppr svg{width:12px;height:12px;stroke-width:3}
+
+.barre{position:sticky;bottom:0;padding:14px 16px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(to top,var(--blanc) 72%,rgba(255,255,255,0));z-index:5}
+.cta{width:100%;min-height:56px;border-radius:16px;background:var(--bleu);color:var(--blanc);font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 10px 22px -8px rgba(0,82,245,.6);transition:transform .12s,background .2s}
+.cta:active{transform:scale(.98)}
+.cta:disabled{background:var(--trait);color:var(--sourd);box-shadow:none;cursor:not-allowed}
+.secondaire{min-height:52px;border-radius:16px;border:2px solid var(--bleu);color:var(--bleu);font-weight:800;font-size:15px;padding:0 12px}
+
+/* ---------- Partie ---------- */
+#v-partie{background:var(--brume)}
+.entete{position:sticky;top:0;z-index:6;background:var(--bleu);color:var(--blanc);padding:calc(10px + env(safe-area-inset-top)) 8px 12px;display:flex;align-items:center;gap:6px}
+.icone{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;color:var(--blanc);flex:none}
+.icone:disabled{opacity:.35;cursor:default}
+.icone:not(:disabled):active{background:rgba(255,255,255,.14)}
+.entete-titre{flex:1;display:flex;align-items:center;gap:10px;min-width:0}
+.sceau{width:38px;height:38px;flex:none;--sceau-fond:var(--blanc);--sceau-c:var(--bleu)}
+.entete-titre strong{display:block;font-weight:800;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.entete-titre small{display:block;font-size:13px;font-weight:500;opacity:.88}
+.reglages{display:flex;align-items:center;justify-content:space-between;gap:10px 14px;padding:14px 14px 12px;flex-wrap:wrap}
+.bascule{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:500;cursor:pointer}
+.bascule input{appearance:none;-webkit-appearance:none;width:46px;height:28px;border-radius:999px;background:var(--trait);position:relative;transition:background .2s;flex:none;cursor:pointer}
+.bascule input::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:var(--blanc);transition:transform .2s;box-shadow:0 1px 3px rgba(0,25,74,.3)}
+.bascule input:checked{background:var(--bleu)}
+.bascule input:checked::after{transform:translateX(18px)}
+
+.scores{list-style:none;padding:2px 12px 12px;display:flex;flex-direction:column;gap:10px;flex:1}
+.ligne{background:var(--blanc);border-radius:18px;padding:12px 10px 12px 12px;display:flex;align-items:center;gap:8px;box-shadow:0 1px 0 var(--trait);transition:box-shadow .25s}
+.ligne.tete{box-shadow:0 0 0 2px var(--ambre),0 6px 16px -10px rgba(253,176,53,.9)}
+.ligne .av{--s:50px}
+.ident{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;padding-left:4px}
+.ident .nom{font-weight:700;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ident .rang{font-size:12px;font-weight:500;color:var(--sourd);min-height:15px;display:flex;align-items:center;gap:4px}
+.ident .rang svg{width:16px;height:12px}
+.btn-pt{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;flex:none;transition:transform .1s}
+.btn-pt:active{transform:scale(.9)}
+.moins{border:2px solid var(--trait);color:var(--bleu);background:var(--blanc)}
+.plus{background:var(--bleu);color:var(--blanc)}
+.btn-pt small{font-size:10px;font-weight:800;margin-top:-6px}
+.score{min-width:66px;height:46px;padding:0 6px;border-radius:12px;background:var(--brume);font-size:26px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--nuit);flex:none}
+.score.bump{animation:bump .3s}
+@keyframes bump{40%{transform:scale(1.2);color:var(--bleu)}}
+#v-partie .barre{background:linear-gradient(to top,var(--brume) 72%,rgba(238,243,255,0))}
+
+/* ---------- Feuilles (saisie) ---------- */
+.voile{position:fixed;inset:0;background:rgba(0,25,74,.5);display:flex;align-items:flex-end;justify-content:center;z-index:30;animation:fondu .2s}
+.tiroir{background:var(--blanc);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px;animation:glisse .28s cubic-bezier(.2,.8,.2,1)}
+.tiroir-tete{display:flex;align-items:center;gap:12px}
+.tiroir-tete .av{--s:48px}
+.tiroir h3{font-size:19px;font-weight:800}
+.tiroir p{font-size:14px;color:var(--sourd);font-weight:500}
+.tiroir input{font-size:34px;font-weight:800;text-align:center;padding:10px;border:2px solid var(--trait);border-radius:16px;color:var(--nuit);width:100%;font-variant-numeric:tabular-nums}
+.tiroir input.texte{font-size:20px;text-align:left;font-weight:700;padding:14px}
+.tiroir input:focus{outline:none;border-color:var(--bleu)}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.liens{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+@keyframes fondu{from{opacity:0}}
+@keyframes glisse{from{transform:translateY(100%)}}
+
+/* ---------- Fin de partie ---------- */
+#v-fin{background:radial-gradient(90% 46% at 50% 36%,rgba(255,255,255,.2),rgba(255,255,255,0) 70%),var(--bleu);color:var(--blanc);padding-bottom:calc(20px + env(safe-area-inset-bottom));overflow:hidden}
+#feux{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0}
+#v-fin>:not(canvas){position:relative;z-index:1}
+.fin-tete{padding:calc(26px + env(safe-area-inset-top)) 20px 0;text-align:center}
+.fin-jeu{font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;opacity:.9}
+.fin-titre{font-size:clamp(30px,9vw,44px);font-weight:800;line-height:1.05;letter-spacing:-.02em;margin-top:10px;text-wrap:balance}
+.podium{display:grid;grid-template-columns:1fr 1.2fr 1fr;align-items:end;gap:6px;padding:62px 12px 0}
+.podium.solo{grid-template-columns:1fr 1.2fr 1fr}
+.marche{display:flex;flex-direction:column;align-items:center;min-width:0}
+.perso{display:flex;flex-direction:column;align-items:center;gap:6px;padding-bottom:12px;position:relative;max-width:100%;animation:surgit .6s cubic-bezier(.2,.9,.3,1.35) both;animation-delay:calc(var(--d) + .45s)}
+.marche .av{--s:74px}
+.m1 .av{--s:106px}
+.m1 .av::after{content:"";position:absolute;inset:-26%;border-radius:50%;background:radial-gradient(circle,rgba(253,176,53,.75),rgba(253,176,53,0) 68%);z-index:-1;animation:halo 2.6s ease-in-out infinite}
+.p-nom{font-weight:700;font-size:15px;margin-top:4px;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m1 .p-nom{font-size:19px;font-weight:800}
+.p-score{font-weight:800;font-size:14px;background:rgba(255,255,255,.18);border-radius:999px;padding:3px 11px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.m1 .p-score{background:var(--ambre);color:var(--nuit);font-size:16px}
+.bloc{width:100%;border-radius:14px 14px 0 0;background:var(--blanc);color:var(--bleu);display:flex;justify-content:center;padding-top:12px;font-weight:800;font-size:40px;line-height:1;transform-origin:bottom;animation:monte .7s cubic-bezier(.2,.9,.25,1.12) both;animation-delay:var(--d)}
+.m1 .bloc{height:136px;background:var(--ambre);color:var(--nuit)}
+.m1 .bloc svg{width:52px;height:52px}
+.m2 .bloc{height:98px}
+.m3 .bloc{height:70px}
+.couronne{position:absolute;top:-50px;left:50%;width:64px;height:46px;transform:translateX(-50%) rotate(-9deg);animation:couronne .8s cubic-bezier(.3,1.6,.5,1) both;animation-delay:1.6s;z-index:3;filter:drop-shadow(0 4px 6px rgba(0,25,74,.35))}
+.m1 .perso{cursor:pointer}
+@keyframes monte{from{transform:scaleY(0)}}
+@keyframes surgit{from{opacity:0;transform:translateY(26px) scale(.75)}}
+@keyframes couronne{from{opacity:0;transform:translate(-50%,-90px) rotate(-40deg)}}
+@keyframes halo{50%{transform:scale(1.12);opacity:.7}}
+.reste{margin:22px 12px 0;background:var(--blanc);color:var(--nuit);border-radius:20px;padding:6px 16px;animation:surgit .5s both;animation-delay:2s}
+.reste ol{list-style:none}
+.reste li{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--trait)}
+.reste li:first-child{border-top:0}
+.r-rang{min-width:34px;font-weight:800;font-size:15px;color:var(--bleu);font-variant-numeric:tabular-nums}
+.reste .av{--s:40px}
+.r-nom{flex:1;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.r-score{font-weight:800;font-variant-numeric:tabular-nums}
+.fin-actions{display:grid;gap:10px;padding:22px 12px 0}
+.cta.clair{background:var(--blanc);color:var(--bleu);box-shadow:0 10px 24px -10px rgba(0,25,74,.6)}
+#v-fin .secondaire{border-color:rgba(255,255,255,.75);color:var(--blanc)}
+#v-fin .logo{margin:36px auto 6px}
+
+@media (min-width:600px){
+  .feuille-page{border-radius:28px;margin-bottom:0}
+  .scene{padding-top:36px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="logo-carasso" viewBox="905.00 375.00 805.00 290.00"><path d="M 969.2,413.1 C 969.2,398.1 982.3,384.7 997.4,384.7 C 1012.6,384.7 1025.7,398.1 1025.7,413.1 C 1025.7,428 1012.9,441.4 997.4,441.4 C 982,441.4 969.2,427.7 969.2,413.1"/><path d="M 1002.6,588.3 C 977,588.3 956.9,566.6 956.9,538.8 C 956.9,511 976.5,489 1002.6,489 C 1015,489 1025.3,492.9 1035.3,501.4 C 1037.1,502.9 1039.8,502.7 1041.3,501 L 1060,480.4 C 1061.6,478.6 1061.6,475.8 1059.7,474.2 C 1043.4,459.4 1024.2,452 1002.5,452 C 952.5,452 914.7,489.3 914.7,538.8 C 914.7,588.2 952.5,625.3 1002.6,625.3 C 1025.3,625.3 1044.5,617.6 1062.3,601 C 1064,599.3 1064.1,596.6 1062.5,594.8 L 1043.4,574.1 C 1041.8,572.3 1039.1,572.2 1037.3,573.8 C 1025.8,584 1015.3,588.3 1002.5,588.3"/><path d="M 1148,479.6 C 1144.1,479.6 1140.8,482.3 1139.8,486.1 L 1138.3,492.6 C 1135.9,489.8 1133.2,487.2 1130.4,485 C 1123.4,479.8 1115,477.2 1105.7,477.2 C 1095.5,477.2 1086.1,479.8 1078,485.1 C 1069.9,490.3 1063.5,497.5 1058.9,506.6 C 1054.4,515.6 1052.1,525.8 1052.1,537 C 1052.1,548.2 1054.4,558.2 1058.9,567.2 C 1063.5,576.2 1069.9,583.5 1078,588.8 C 1086.1,594.1 1095.4,596.8 1105.7,596.8 C 1115.1,596.8 1123.4,594.1 1130.4,588.7 C 1133.2,586.6 1135.7,584 1138,581.2 L 1139.8,588 C 1140.7,591.8 1144.1,594.4 1148,594.4 L 1164,594.4 C 1168.6,594.4 1172.4,590.6 1172.4,585.9 L 1172.4,488 C 1172.4,483.4 1168.7,479.6 1164,479.6 Z M 1133.7,537 C 1133.7,541.2 1132.8,545.1 1130.9,548.6 C 1129.1,552 1126.6,554.7 1123.5,556.6 C 1120.4,558.5 1116.8,559.5 1112.7,559.5 C 1108.6,559.5 1105.2,558.5 1102,556.6 C 1098.9,554.7 1096.3,552 1094.5,548.6 C 1092.7,545.1 1091.7,541.2 1091.7,537 C 1091.7,532.8 1092.6,528.9 1094.5,525.5 C 1096.4,522.1 1098.9,519.4 1102.1,517.5 C 1105.2,515.6 1108.8,514.6 1112.7,514.6 C 1116.6,514.6 1120.4,515.6 1123.5,517.5 C 1126.6,519.5 1129.1,522.2 1130.9,525.6 C 1132.8,529 1133.7,532.8 1133.7,537 Z M 1133.7,537"/><path d="M 1454.5,544.2 C 1449,541.4 1442.8,539 1435.9,537.2 C 1431.8,536.1 1428.2,534.9 1425.1,533.7 C 1422.2,532.6 1420,531.4 1418.6,530.1 C 1417.3,529 1416.8,527.7 1416.8,526.1 C 1416.8,523.9 1417.5,522.4 1419.1,521.2 C 1420.7,519.9 1423.4,519.3 1427,519.3 C 1430.6,519.3 1434.7,520.1 1439.4,521.8 C 1442.7,523 1445.9,524.5 1448.9,526.4 C 1450,527.2 1451.3,527.6 1452.7,527.6 C 1455.1,527.6 1457.3,526.4 1458.6,524.4 L 1467.2,511.4 C 1468.3,509.8 1468.7,507.8 1468.2,505.9 C 1467.8,504 1466.7,502.4 1465,501.4 C 1460.4,498.6 1455.4,496.3 1449.9,494.6 C 1442.6,492.2 1435,491.1 1427.5,491.1 C 1418.9,491.1 1411.1,492.6 1404.4,495.6 C 1397.6,498.6 1392.1,502.9 1388.3,508.2 C 1384.4,513.6 1382.4,519.8 1382.4,526.8 C 1382.4,535 1384.3,541.6 1388.1,546.4 C 1391.8,551.2 1396.7,554.9 1402.5,557.6 C 1408.2,560.2 1414.3,562.4 1420.5,564 C 1424.4,565.2 1427.9,566.2 1430.8,567.3 C 1433.6,568.2 1435.6,569.3 1437,570.5 C 1438.1,571.6 1438.7,572.9 1438.7,574.6 C 1438.7,576.9 1437.7,578.7 1435.8,580.1 C 1433.7,581.6 1430.6,582.4 1426.5,582.4 C 1421.5,582.4 1416,581.2 1410.3,578.9 C 1406.1,577.2 1402.1,575 1398.5,572.5 C 1397.3,571.6 1395.9,571.2 1394.4,571.2 C 1392,571.2 1389.8,572.4 1388.5,574.3 L 1379.5,587.7 C 1378.4,589.2 1378.1,591.2 1378.5,593.1 C 1378.9,595 1380,596.6 1381.7,597.7 C 1387.9,601.7 1394.4,604.9 1400.9,607.1 C 1409,609.8 1417.7,611.1 1426.5,611.1 C 1441.6,611.1 1453.2,607.6 1461.1,600.6 C 1469.1,593.6 1473.1,584.5 1473.1,573.6 C 1473.1,566.6 1471.4,560.6 1468,555.8 C 1464.7,551.1 1460.2,547.2 1454.6,544.2 Z M 1454.5,544.2"/><path d="M 1241.5,479.7 L 1184.7,479.7 C 1181.8,479.7 1179.5,482 1179.5,484.8 L 1179.5,589.2 C 1179.5,592.1 1181.8,594.4 1184.7,594.4 L 1209,594.4 C 1211.8,594.4 1214.2,592.1 1214.2,589.2 L 1214.2,512.5 L 1241.5,512.5 C 1244.3,512.5 1246.7,510.2 1246.7,507.3 L 1246.7,484.9 C 1246.7,482 1244.3,479.7 1241.5,479.7 Z M 1241.5,479.7"/><path d="M 1556.4,516.1 C 1550.9,513.2 1544.7,510.8 1537.8,509 C 1533.7,507.9 1530.1,506.8 1527,505.6 C 1524.1,504.4 1521.9,503.2 1520.5,501.9 C 1519.2,500.8 1518.7,499.5 1518.7,498 C 1518.7,495.8 1519.4,494.2 1521,493 C 1522.6,491.7 1525.3,491.1 1528.9,491.1 C 1532.5,491.1 1536.6,492 1541.3,493.7 C 1544.6,494.8 1547.8,496.4 1550.8,498.3 C 1551.9,499 1553.2,499.4 1554.6,499.4 C 1557,499.4 1559.2,498.2 1560.5,496.2 L 1569.1,483.3 C 1570.2,481.6 1570.6,479.6 1570.1,477.7 C 1569.7,475.8 1568.6,474.2 1566.9,473.2 C 1562.3,470.4 1557.3,468.1 1551.8,466.4 C 1544.5,464.1 1536.9,462.9 1529.4,462.9 C 1520.8,462.9 1513,464.4 1506.3,467.4 C 1499.5,470.4 1494.1,474.7 1490.2,480 C 1486.3,485.4 1484.3,491.7 1484.3,498.7 C 1484.3,506.8 1486.2,513.4 1490,518.2 C 1493.7,523 1498.6,526.8 1504.4,529.5 C 1510.1,532.1 1516.2,534.2 1522.4,535.9 C 1526.3,537 1529.8,538.1 1532.8,539.1 C 1535.5,540.1 1537.5,541.2 1538.9,542.4 C 1540,543.4 1540.6,544.7 1540.6,546.4 C 1540.6,548.7 1539.6,550.5 1537.7,552 C 1535.6,553.5 1532.5,554.3 1528.4,554.3 C 1523.4,554.3 1517.9,553.1 1512.2,550.8 C 1508,549.1 1504,546.9 1500.4,544.3 C 1499.2,543.5 1497.8,543 1496.3,543 C 1493.9,543 1491.7,544.2 1490.4,546.2 L 1481.4,559.5 C 1480.4,561.1 1480,563 1480.4,564.9 C 1480.8,566.8 1481.9,568.5 1483.6,569.5 C 1489.8,573.6 1496.3,576.7 1502.8,578.9 C 1510.9,581.6 1519.6,583 1528.4,583 C 1543.5,583 1555.1,579.5 1563,572.4 C 1571,565.4 1575,556.3 1575,545.5 C 1575,538.5 1573.3,532.5 1569.9,527.7 C 1566.6,522.9 1562.1,519 1556.5,516 Z M 1556.4,516.1"/><path d="M 1691.8,507.6 C 1686.8,499.1 1679.7,492.2 1670.9,487.2 C 1662.1,482.2 1652,479.7 1640.9,479.7 C 1629.7,479.7 1619.4,482.2 1610.5,487.2 C 1601.7,492.2 1594.7,499.1 1589.6,507.6 C 1584.5,516.2 1581.8,526.1 1581.8,537 C 1581.8,547.9 1584.5,557.6 1589.6,566.3 C 1594.7,574.9 1601.8,581.9 1610.6,586.9 C 1619.4,591.9 1629.6,594.4 1640.9,594.4 C 1652.2,594.4 1662.1,591.9 1671,586.9 C 1679.8,581.9 1686.8,574.9 1691.8,566.3 C 1696.9,557.6 1699.4,547.8 1699.4,537 C 1699.4,526.3 1696.9,516.3 1691.8,507.7 Z M 1651.7,557.1 C 1648.5,559 1645,560 1640.9,560 C 1636.8,560 1632.9,559 1629.7,557.1 C 1626.4,555.1 1623.9,552.5 1622.1,548.9 C 1620.2,545.4 1619.3,541.4 1619.3,537 C 1619.3,532.7 1620.2,528.5 1622.1,525.1 C 1623.9,521.6 1626.4,519 1629.7,517 C 1632.9,515.1 1636.7,514.1 1640.9,514.1 C 1645.1,514.1 1648.5,515.1 1651.7,517.1 C 1654.9,519.1 1657.5,521.9 1659.4,525.2 C 1661.3,528.6 1662.3,532.6 1662.3,537 C 1662.3,541.5 1661.3,545.4 1659.4,548.9 C 1657.5,552.4 1654.9,555.1 1651.8,557.1 Z M 1651.7,557.1"/><path d="M 1346.8,479.6 C 1342.9,479.6 1339.6,482.3 1338.6,486.1 L 1337.1,492.6 C 1334.7,489.8 1332,487.2 1329.2,485 C 1322.1,479.8 1313.8,477.2 1304.5,477.2 C 1294.3,477.2 1284.9,479.8 1276.8,485.1 C 1268.7,490.3 1262.3,497.5 1257.7,506.6 C 1253.2,515.6 1250.9,525.8 1250.9,537 C 1250.9,548.2 1253.2,558.2 1257.7,567.2 C 1262.3,576.2 1268.7,583.5 1276.8,588.8 C 1284.9,594.1 1294.2,596.8 1304.5,596.8 C 1313.9,596.8 1322.1,594.1 1329.2,588.7 C 1332,586.6 1334.5,584 1336.8,581.2 L 1338.6,588 C 1339.5,591.8 1342.9,594.4 1346.8,594.4 L 1362.8,594.4 C 1367.4,594.4 1371.2,590.6 1371.2,585.9 L 1371.2,488 C 1371.2,483.4 1367.4,479.6 1362.8,479.6 Z M 1332.5,537 C 1332.5,541.2 1331.6,545.1 1329.7,548.6 C 1327.9,552 1325.4,554.7 1322.3,556.6 C 1319.2,558.5 1315.6,559.5 1311.5,559.5 C 1307.4,559.5 1304,558.5 1300.8,556.6 C 1297.7,554.7 1295.1,552 1293.3,548.6 C 1291.5,545.1 1290.5,541.2 1290.5,537 C 1290.5,532.8 1291.4,528.9 1293.3,525.5 C 1295.1,522.1 1297.7,519.4 1300.9,517.5 C 1304,515.6 1307.6,514.6 1311.5,514.6 C 1315.4,514.6 1319.2,515.6 1322.2,517.5 C 1325.4,519.5 1327.9,522.2 1329.7,525.6 C 1331.5,529 1332.5,532.8 1332.5,537 Z M 1332.5,537"/><path d="M 1102.8,384.7 C 1110.6,384.7 1117,387.4 1122.1,392.9 C 1127.2,398.4 1129.7,405.1 1129.7,413.1 C 1129.7,421 1127.2,427.7 1122.1,433.2 C 1117,438.7 1110.6,441.4 1102.8,441.4 L 1080.7,441.4 L 1080.7,384.7 Z M 1102.8,434.3 C 1108.6,434.3 1113.3,432.3 1117,428.2 C 1120.7,424.2 1122.5,419.1 1122.5,413.1 C 1122.5,407 1120.7,402 1117,397.9 C 1113.3,393.8 1108.6,391.8 1102.8,391.8 L 1088.2,391.8 L 1088.2,434.3 Z M 1102.8,434.3"/><path d="M 1173.7,400.9 L 1180.8,400.9 L 1180.8,441.4 L 1173.7,441.4 L 1173.7,434.4 C 1170.2,439.8 1165.1,442.5 1158.4,442.5 C 1152.7,442.5 1147.9,440.4 1143.9,436.3 C 1139.9,432.1 1137.9,427.1 1137.9,421.2 C 1137.9,415.2 1139.9,410.2 1143.9,406 C 1147.9,401.9 1152.7,399.8 1158.4,399.8 C 1165.1,399.8 1170.2,402.5 1173.7,407.9 Z M 1159.3,435.7 C 1163.4,435.7 1166.8,434.3 1169.6,431.5 C 1172.3,428.7 1173.7,425.3 1173.7,421.2 C 1173.7,417.1 1172.3,413.6 1169.6,410.8 C 1166.8,408 1163.4,406.7 1159.3,406.7 C 1155.2,406.7 1151.8,408 1149.1,410.8 C 1146.3,413.6 1144.9,417.1 1144.9,421.2 C 1144.9,425.3 1146.3,428.7 1149.1,431.5 C 1151.8,434.3 1155.2,435.7 1159.3,435.7"/><path d="M 1209.1,399.8 C 1213.9,399.8 1217.7,401.3 1220.6,404.3 C 1223.4,407.3 1224.9,411.4 1224.9,416.5 L 1224.9,441.4 L 1217.8,441.4 L 1217.8,416.9 C 1217.8,413.6 1216.9,411.1 1215.1,409.3 C 1213.3,407.5 1210.9,406.6 1207.8,406.6 C 1204.2,406.6 1201.4,407.7 1199.2,409.9 C 1197.1,412 1196,415.4 1196,419.9 L 1196,441.4 L 1188.9,441.4 L 1188.9,400.9 L 1196,400.9 L 1196,406.7 C 1198.9,402.1 1203.2,399.8 1209.1,399.8"/><path d="M 1236.6,394.3 C 1235.2,394.3 1234.1,393.8 1233.2,392.9 C 1232.3,392 1231.8,390.9 1231.8,389.6 C 1231.8,388.3 1232.3,387.1 1233.2,386.2 C 1234.1,385.2 1235.2,384.8 1236.6,384.8 C 1237.9,384.8 1239,385.2 1239.9,386.2 C 1240.8,387.1 1241.3,388.3 1241.3,389.6 C 1241.3,390.9 1240.8,392 1239.9,392.9 C 1239,393.8 1237.9,394.3 1236.6,394.3 M 1233,400.9 L 1240.1,400.9 L 1240.1,441.4 L 1233,441.4 Z M 1233,400.9"/><path d="M 1451.9,394.3 C 1450.5,394.3 1449.4,393.8 1448.4,392.9 C 1447.5,392 1447.1,390.9 1447.1,389.6 C 1447.1,388.3 1447.5,387.1 1448.4,386.2 C 1449.4,385.2 1450.5,384.8 1451.9,384.8 C 1453.1,384.8 1454.3,385.2 1455.2,386.2 C 1456.1,387.1 1456.6,388.3 1456.6,389.6 C 1456.6,390.9 1456.1,392 1455.2,392.9 C 1454.3,393.8 1453.1,394.3 1451.9,394.3 M 1448.3,400.9 L 1455.3,400.9 L 1455.3,441.4 L 1448.3,441.4 Z M 1448.3,400.9"/><path d="M 1255.4,424.4 C 1256.1,428 1257.8,430.8 1260.4,432.8 C 1263,434.8 1266.3,435.8 1270.1,435.8 C 1275.5,435.8 1279.3,433.9 1281.8,429.9 L 1287.8,433.3 C 1283.8,439.4 1277.9,442.5 1269.9,442.5 C 1263.5,442.5 1258.3,440.5 1254.3,436.4 C 1250.2,432.4 1248.2,427.3 1248.2,421.2 C 1248.2,415.1 1250.2,410 1254.1,405.9 C 1258.1,401.9 1263.2,399.8 1269.5,399.8 C 1275.4,399.8 1280.3,401.9 1284,406.1 C 1287.8,410.3 1289.6,415.4 1289.6,421.2 C 1289.6,422.3 1289.6,423.3 1289.4,424.4 Z M 1269.5,406.5 C 1265.7,406.5 1262.5,407.6 1260.1,409.7 C 1257.6,411.8 1256,414.7 1255.4,418.2 L 1282.5,418.2 C 1281.9,414.4 1280.4,411.5 1278,409.5 C 1275.5,407.5 1272.7,406.5 1269.5,406.5"/><path d="M 1297.8,384.7 L 1304.8,384.7 L 1304.8,441.4 L 1297.8,441.4 Z M 1297.8,384.7"/><path d="M 1432.5,384.7 L 1440.1,384.7 L 1440.1,441.4 L 1434,441.4 L 1404.8,399 L 1404.8,441.4 L 1397.3,441.4 L 1397.3,384.7 L 1403.1,384.7 L 1432.5,427.3 Z M 1432.5,384.7"/><path d="M 1483.7,399.8 C 1488.5,399.8 1492.3,401.3 1495.1,404.3 C 1498,407.3 1499.4,411.4 1499.4,416.5 L 1499.4,441.4 L 1492.4,441.4 L 1492.4,416.9 C 1492.4,413.6 1491.5,411.1 1489.7,409.3 C 1487.9,407.5 1485.5,406.6 1482.3,406.6 C 1478.8,406.6 1476,407.7 1473.8,409.9 C 1471.6,412 1470.6,415.4 1470.6,419.9 L 1470.6,441.4 L 1463.5,441.4 L 1463.5,400.9 L 1470.6,400.9 L 1470.6,406.7 C 1473.4,402.1 1477.8,399.8 1483.7,399.8"/><path d="M 1543.4,400.9 L 1550.5,400.9 L 1550.5,441.4 L 1543.4,441.4 L 1543.4,434.4 C 1539.9,439.8 1534.8,442.5 1528.1,442.5 C 1522.4,442.5 1517.6,440.4 1513.6,436.3 C 1509.6,432.1 1507.6,427.1 1507.6,421.2 C 1507.6,415.2 1509.6,410.2 1513.6,406 C 1517.6,401.9 1522.4,399.8 1528.1,399.8 C 1534.8,399.8 1539.9,402.5 1543.4,407.9 Z M 1529,435.7 C 1533.1,435.7 1536.5,434.3 1539.3,431.5 C 1542.1,428.7 1543.4,425.3 1543.4,421.2 C 1543.4,417.1 1542.1,413.6 1539.3,410.8 C 1536.5,408 1533.1,406.7 1529,406.7 C 1524.9,406.7 1521.5,408 1518.8,410.8 C 1516,413.6 1514.7,417.1 1514.7,421.2 C 1514.7,425.3 1516,428.7 1518.8,431.5 C 1521.5,434.3 1524.9,435.7 1529,435.7"/><path d="M 1367.5,431.2 C 1369.4,428 1370.8,424.3 1371.6,420 L 1371.7,419.4 L 1364.9,417.2 L 1364.7,418 C 1364.2,420.9 1363.3,423.6 1362.2,426 L 1351.2,415.1 C 1358.5,410.7 1361.3,407 1361.3,401.9 C 1361.3,395 1356.3,390.7 1348.2,390.7 C 1339.7,390.7 1334,395.5 1334,402.6 C 1334,406.5 1335.6,409.8 1339.6,413.9 C 1331.2,418.8 1327.9,423.2 1327.9,429.4 C 1327.9,437.3 1335.5,443.1 1346.1,443.1 C 1352.6,443.1 1358.3,441 1362.8,436.9 L 1369.4,443.6 L 1374.2,438 Z M 1348.2,397.1 C 1351.9,397.1 1354.1,398.9 1354.1,401.9 C 1354.1,404.7 1352.1,406.8 1346.3,410.2 C 1342.4,406.2 1341.8,404.6 1341.8,402.5 C 1341.8,399.2 1344.3,397.1 1348.2,397.1 M 1344.4,418.7 L 1357.7,431.9 C 1354.7,434.6 1350.9,435.9 1346.5,435.9 C 1340.2,435.9 1336,433 1336,428.7 C 1336,425.4 1337.4,422.7 1344.4,418.7"/><path d="M 1093.7,636.1 L 1084.4,636.1 L 1084.4,642.3 L 1093.4,642.3 L 1093.4,645.8 L 1084.4,645.8 L 1084.4,654.8 L 1080.7,654.8 L 1080.7,632.6 L 1093.7,632.6 Z M 1093.7,636.1"/><path d="M 1153,651.8 C 1150.7,654.1 1148,655.2 1144.8,655.2 C 1141.6,655.2 1138.9,654.1 1136.7,651.8 C 1134.4,649.6 1133.3,646.9 1133.3,643.7 C 1133.3,640.5 1134.4,637.8 1136.7,635.6 C 1138.9,633.3 1141.6,632.2 1144.8,632.2 C 1148,632.2 1150.7,633.3 1153,635.6 C 1155.2,637.8 1156.3,640.5 1156.3,643.7 C 1156.3,646.9 1155.2,649.6 1153,651.8 M 1139.2,649.4 C 1140.7,650.9 1142.6,651.6 1144.8,651.6 C 1147,651.6 1148.9,650.9 1150.4,649.4 C 1151.9,647.9 1152.7,646 1152.7,643.7 C 1152.7,641.4 1151.9,639.5 1150.4,638 C 1148.9,636.5 1147,635.8 1144.8,635.8 C 1142.6,635.8 1140.7,636.5 1139.2,638 C 1137.7,639.5 1137,641.4 1137,643.7 C 1137,646 1137.7,647.9 1139.2,649.4"/><path d="M 1210.2,632.6 L 1213.9,632.6 L 1213.9,654.8 L 1211,654.8 L 1200.6,639.8 L 1200.6,654.8 L 1196.9,654.8 L 1196.9,632.6 L 1199.7,632.6 L 1210.2,647.8 Z M 1210.2,632.6"/><path d="M 1264.3,632.6 C 1267.4,632.6 1269.9,633.7 1271.9,635.8 C 1273.9,638 1274.9,640.6 1274.9,643.7 C 1274.9,646.8 1273.9,649.4 1271.9,651.6 C 1269.9,653.7 1267.4,654.8 1264.3,654.8 L 1255.6,654.8 L 1255.6,632.6 Z M 1264.3,651.3 C 1266.4,651.3 1268.1,650.6 1269.4,649.1 C 1270.7,647.7 1271.4,645.9 1271.4,643.7 C 1271.4,641.5 1270.7,639.7 1269.4,638.2 C 1268.1,636.8 1266.4,636.1 1264.3,636.1 L 1259.3,636.1 L 1259.3,651.3 Z M 1264.3,651.3"/><path d="M 1329.2,654.8 L 1327.6,650.3 L 1318.2,650.3 L 1316.6,654.8 L 1312.7,654.8 L 1320.7,632.6 L 1325.1,632.6 L 1333.1,654.8 Z M 1319.4,646.9 L 1326.4,646.9 L 1322.9,636.9 Z M 1319.4,646.9"/><path d="M 1385.6,632.6 L 1385.6,636.1 L 1379.4,636.1 L 1379.4,654.8 L 1375.7,654.8 L 1375.7,636.1 L 1369.5,636.1 L 1369.5,632.6 Z M 1385.6,632.6"/><path d="M 1425.6,632.6 L 1429.3,632.6 L 1429.3,654.8 L 1425.6,654.8 Z M 1425.6,632.6"/><path d="M 1489.5,651.8 C 1487.3,654.1 1484.6,655.2 1481.4,655.2 C 1478.2,655.2 1475.5,654.1 1473.2,651.8 C 1471,649.6 1469.9,646.9 1469.9,643.7 C 1469.9,640.5 1471,637.8 1473.2,635.6 C 1475.5,633.3 1478.2,632.2 1481.4,632.2 C 1484.6,632.2 1487.3,633.3 1489.5,635.6 C 1491.8,637.8 1492.9,640.5 1492.9,643.7 C 1492.9,646.9 1491.8,649.6 1489.5,651.8 M 1475.8,649.4 C 1477.3,650.9 1479.2,651.6 1481.4,651.6 C 1483.6,651.6 1485.5,650.9 1487,649.4 C 1488.5,647.9 1489.2,646 1489.2,643.7 C 1489.2,641.4 1488.5,639.5 1487,638 C 1485.5,636.5 1483.6,635.8 1481.4,635.8 C 1479.2,635.8 1477.3,636.5 1475.8,638 C 1474.3,639.5 1473.6,641.4 1473.6,643.7 C 1473.6,646 1474.3,647.9 1475.8,649.4"/><path d="M 1546.8,632.6 L 1550.5,632.6 L 1550.5,654.8 L 1547.6,654.8 L 1537.2,639.8 L 1537.2,654.8 L 1533.5,654.8 L 1533.5,632.6 L 1536.3,632.6 L 1546.8,647.8 Z M 1546.8,632.6"/></symbol>
+  <symbol id="sceau" viewBox="1090.0 197.5 594.0 594.0"><circle cx="1387.0" cy="494.5" r="297.0" style="fill:var(--sceau-fond,#0052F5)"/><path style="fill:var(--sceau-c,#fff)" d="M 1341.1,290.3 C 1341.1,265.9 1362.3,244 1386.9,244 C 1411.4,244 1432.6,265.9 1432.6,290.3 C 1432.6,314.6 1411.9,336.5 1386.9,336.5 C 1361.8,336.5 1341.1,314.2 1341.1,290.3"/><path style="fill:var(--sceau-c,#fff)" d="M 1395.2,576.1 C 1353.7,576.1 1321.3,540.6 1321.3,495.3 C 1321.3,450 1353,414.1 1395.2,414.1 C 1415.2,414.1 1431.9,420.4 1448.1,434.3 C 1451,436.8 1455.4,436.4 1457.9,433.6 L 1488.1,400 C 1490.7,397.1 1490.6,392.5 1487.7,389.9 C 1461.2,365.9 1430.1,353.7 1395.1,353.7 C 1314.1,353.7 1253,414.6 1253,495.2 C 1253,575.9 1314.1,636.4 1395.2,636.4 C 1432,636.4 1463,623.8 1491.9,596.7 C 1494.7,594 1494.8,589.5 1492.2,586.6 L 1461.3,552.9 C 1458.7,550 1454.3,549.8 1451.4,552.3 C 1432.7,569.1 1415.9,576.1 1395.1,576.1"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-moins" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-retour" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-annuler" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+  <symbol id="i-drapeau" viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></symbol>
+  <symbol id="i-couronne" viewBox="0 0 64 46"><path d="M6 16l13 11L32 6l13 21 13-11-5 24H11z" style="fill:var(--ambre);stroke:var(--nuit)" stroke-width="3.5" stroke-linejoin="round"/><circle cx="6" cy="14" r="5" style="fill:var(--ambre);stroke:var(--nuit)" stroke-width="3"/><circle cx="32" cy="5" r="5" style="fill:var(--ambre);stroke:var(--nuit)" stroke-width="3"/><circle cx="58" cy="14" r="5" style="fill:var(--ambre);stroke:var(--nuit)" stroke-width="3"/><circle cx="32" cy="30" r="4" style="fill:var(--nuit)"/></symbol>
+  <symbol id="i-trophee" viewBox="0 0 64 64"><path d="M18 8h28v14c0 9.5-6.3 16-14 16s-14-6.5-14-16z" style="fill:currentColor"/><path d="M18 12H9v4c0 7 4.5 11.5 10.5 12.5M46 12h9v4c0 7-4.5 11.5-10.5 12.5" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="M28 37h8v10h-8z" style="fill:currentColor"/><rect x="19" y="47" width="26" height="8" rx="3" style="fill:currentColor"/></symbol>
+</svg>
+
+<!-- ============ ACCUEIL ============ -->
+<section id="v-accueil" class="view">
+  <header class="scene">
+    <svg class="logo" role="img" aria-label="Fondation Daniel &amp; Nina Carasso"><use href="#logo-carasso"/></svg>
+    <h1 class="titre">JEUX-DI<span class="ex">&nbsp;!</span></h1>
+    <p class="accroche" id="accroche">C'est jeudi&nbsp;: on joue&nbsp;!</p>
+    <div class="des" aria-hidden="true">
+      <svg class="d1" viewBox="0 0 100 100"><rect class="face" x="2" y="2" width="96" height="96" rx="24"/><circle class="pip" cx="28" cy="28" r="10"/><circle class="pip" cx="72" cy="28" r="10"/><circle class="pip" cx="50" cy="50" r="10"/><circle class="pip" cx="28" cy="72" r="10"/><circle class="pip" cx="72" cy="72" r="10"/></svg>
+      <svg class="d2" viewBox="0 0 100 100"><rect class="face" x="2" y="2" width="96" height="96" rx="24"/><circle class="pip" cx="28" cy="28" r="10"/><circle class="pip" cx="50" cy="50" r="10"/><circle class="pip" cx="72" cy="72" r="10"/></svg>
+    </div>
+  </header>
+  <main class="feuille-page">
+    <section>
+      <div class="rubrique">
+        <h2>Participants <span class="compte" id="nb">0</span></h2>
+        <button class="lien" id="vider" type="button">Vider</button>
+      </div>
+      <ul class="plateau" id="plateau" aria-label="Participants sélectionnés"></ul>
+    </section>
+    <section>
+      <div class="rubrique"><h2>Qui joue&nbsp;?</h2></div>
+      <ul class="equipe" id="equipe"></ul>
+    </section>
+  </main>
+  <footer class="barre">
+    <button class="cta" id="lancer" type="button" disabled>Choisis au moins 2 participants</button>
+  </footer>
+</section>
+
+<!-- ============ PARTIE ============ -->
+<section id="v-partie" class="view" hidden>
+  <header class="entete">
+    <button class="icone" id="retour" type="button" aria-label="Modifier les participants"><svg class="ico"><use href="#i-retour"/></svg></button>
+    <div class="entete-titre">
+      <svg class="sceau" aria-hidden="true"><use href="#sceau"/></svg>
+      <div style="min-width:0"><strong id="p-titre">Partie</strong><small id="p-date"></small></div>
+    </div>
+    <button class="icone" id="annuler" type="button" aria-label="Annuler le dernier changement de score" disabled><svg class="ico"><use href="#i-annuler"/></svg></button>
+  </header>
+  <div class="reglages">
+    <label class="bascule"><input type="checkbox" id="bas-gagne"><span>Le plus bas gagne</span></label>
+  </div>
+  <ul class="scores" id="scores"></ul>
+  <footer class="barre">
+    <button class="cta" id="fin" type="button"><svg class="ico"><use href="#i-drapeau"/></svg>Fin de partie</button>
+  </footer>
+</section>
+
+<!-- ============ FIN DE PARTIE ============ -->
+<section id="v-fin" class="view" hidden>
+  <canvas id="feux" aria-hidden="true"></canvas>
+  <header class="fin-tete">
+    <p class="fin-jeu" id="f-jeu"></p>
+    <h2 class="fin-titre" id="f-titre"></h2>
+  </header>
+  <div class="podium" id="podium"></div>
+  <section class="reste" id="reste-bloc">
+    <ol id="reste"></ol>
+  </section>
+  <div class="fin-actions">
+    <button class="cta clair" id="revanche" type="button">Revanche</button>
+    <div class="duo">
+      <button class="secondaire" id="reprendre" type="button">Reprendre</button>
+      <button class="secondaire" id="nouvelle" type="button">Nouvelle partie</button>
+    </div>
+  </div>
+  <svg class="logo" role="img" aria-label="Fondation Daniel &amp; Nina Carasso"><use href="#logo-carasso"/></svg>
+</section>
+
+<!-- ============ TIROIRS ============ -->
+<div class="voile" id="t-points" hidden>
+  <div class="tiroir" role="dialog" aria-modal="true" aria-labelledby="tp-titre">
+    <div class="tiroir-tete"><span id="tp-av"></span><div><h3 id="tp-titre">Points</h3><p id="tp-actuel"></p></div></div>
+    <input id="tp-val" type="text" inputmode="numeric" pattern="-?[0-9]*" placeholder="0" autocomplete="off" aria-label="Nombre de points">
+    <div class="duo">
+      <button class="secondaire" id="tp-moins" type="button">− Retirer</button>
+      <button class="cta" id="tp-plus" type="button">+ Ajouter</button>
+    </div>
+    <div class="liens">
+      <button class="lien" id="tp-fixer" type="button">Remplacer le score par cette valeur</button>
+      <button class="lien" data-fermer type="button">Fermer</button>
+    </div>
+  </div>
+</div>
+<div class="voile" id="t-invite" hidden>
+  <form class="tiroir" role="dialog" aria-modal="true" aria-labelledby="ti-titre" id="ti-form">
+    <h3 id="ti-titre">Ajouter une personne invitée</h3>
+    <p>Son prénom s'affichera avec ses initiales à la place de la photo.</p>
+    <input class="texte" id="ti-nom" type="text" maxlength="24" placeholder="Prénom" autocomplete="off" aria-label="Prénom">
+    <div class="duo">
+      <button class="secondaire" data-fermer type="button">Annuler</button>
+      <button class="cta" type="submit">Ajouter</button>
+    </div>
+  </form>
+</div>
+
+<script>
+(() => {
+"use strict";
+const EQUIPE = [
+  ["benoit","Benoît"],["celine","Céline"],["chloe","Chloé"],["guilhem","Guilhem"],["klaus","Klaus"],
+  ["louise","Louise"],["margaux","Margaux"],["marina","Marina"],["marion","Marion"],["mathieu","Mathieu"],
+  ["mathilde","Mathilde"],["mayte","Mayté"],["nathaniele","Nathanièle"],["nicolas","Nicolas"],["raquel","Raquel"],
+  ["sebastien","Sébastien"],["thibault","Thibault"]
+];
+const DISQUES = ["--turquoise","--ambre","--vert","--corail","--bleu","--jaune","--beige"];
+const COULEUR = {
+  benoit:"--bleu", celine:"--bleu", klaus:"--ambre", marina:"--ambre",
+  guilhem:"--vert", mathilde:"--vert", raquel:"--vert", chloe:"--vert",
+  nicolas:"--corail", mayte:"--corail", thibault:"--turquoise", sebastien:"--turquoise",
+  nathaniele:"--beige", margaux:"--beige", mathieu:"--beige", louise:"--jaune", marion:"--jaune"
+};
+const team = EQUIPE.map(([id,nom]) => ({id, nom, img:`img/${id}.webp`, disque:`var(${COULEUR[id]})`}));
+const CLE = "jeuxdi-v1";
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const reduit = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const defaut = () => ({vue:"accueil", choisis:[], scores:{}, basGagne:false, invites:[], historique:[], enCours:false});
+let etat = defaut();
+
+const personnes = () => team.concat(etat.invites.map(g => ({...g, disque:`var(${DISQUES[g.c % 7]})`})));
+const parId = id => personnes().find(p => p.id === id);
+const initiales = n => n.trim().split(/[\s-]+/).filter(Boolean).map(w => w[0]).join("").slice(0,2).toUpperCase();
+const pts = n => `${n} ${Math.abs(n) >= 2 ? "pts" : "pt"}`;
+const rangTxt = (r, ex) => (r === 1 ? "1er" : r + "e") + (ex ? " ex æquo" : "");
+const de = n => /^[aeiouyàâäéèêëîïôöûüœ]/i.test(n) ? "d'" + n : "de " + n;
+
+function avatar(p, opts = {}) {
+  const cls = ["av", opts.pop ? "pop" : "", opts.anneau ? "anneau" : ""].join(" ");
+  const inner = p.img
+    ? `<span class="clip"><img src="${p.img}" alt="" draggable="false" loading="lazy"></span>`
+    : `<span class="initiales">${esc(initiales(p.nom))}</span>`;
+  return `<span class="${cls}" style="--disc:${p.disque}">${inner}${opts.extra || ""}</span>`;
+}
+const ico = (id, cls = "") => `<svg class="ico ${cls}" aria-hidden="true"><use href="#${id}"/></svg>`;
+
+function sauver() { try { localStorage.setItem(CLE, JSON.stringify(etat)); } catch (e) {} }
+function charger() { try { const s = localStorage.getItem(CLE); return s ? JSON.parse(s) : null; } catch (e) { return null; } }
+function vibrer() { try { navigator.vibrate && navigator.vibrate(8); } catch (e) {} }
+
+const dateDuJour = () => new Date().toLocaleDateString("fr-FR", {weekday:"long", day:"numeric", month:"long"});
+
+/* ---------- classement ---------- */
+function classement() {
+  const sc = id => etat.scores[id] || 0;
+  const ids = etat.choisis.slice().sort((a, b) => etat.basGagne ? sc(a) - sc(b) : sc(b) - sc(a));
+  const mieux = (a, b) => etat.basGagne ? a < b : a > b;
+  return ids.map(id => {
+    const s = sc(id);
+    const rang = 1 + ids.filter(o => mieux(sc(o), s)).length;
+    const ex = ids.filter(o => sc(o) === s).length > 1;
+    return {p: parId(id), s, rang, ex};
+  });
+}
+
+/* ---------- vues ---------- */
+function montrer(vue) {
+  etat.vue = vue;
+  for (const v of ["accueil","partie","fin"]) $("#v-" + v).hidden = v !== vue;
+  if (vue !== "fin") Feux.stop();
+  window.scrollTo(0, 0);
+  if (vue === "accueil") rendreAccueil();
+  if (vue === "partie") rendrePartie();
+  if (vue === "fin") rendreFin();
+  sauver();
+}
+
+function rendreAccueil() {
+  const j = new Date().getDay();
+  $("#accroche").textContent = j === 4 ? "C'est jeudi : on joue !" : "Pas besoin d'attendre jeudi pour jouer.";
+  rendreEquipe();
+  rendrePlateau();
+}
+
+function rendreEquipe() {
+  const html = personnes().map(p => {
+    const on = etat.choisis.includes(p.id);
+    const badge = `<span class="pastille" aria-hidden="true">${ico("i-plus","add")}${ico("i-ok","ok")}</span>`;
+    const suppr = p.img ? "" : `<button class="suppr" type="button" data-suppr="${p.id}" aria-label="Supprimer ${esc(p.nom)} de la liste">${ico("i-x")}</button>`;
+    return `<li><button class="carte" type="button" data-id="${p.id}" aria-pressed="${on}" aria-label="${esc(p.nom)}">${avatar(p, {pop:true, extra:badge})}<span class="nom">${esc(p.nom)}</span></button>${suppr}</li>`;
+  }).join("");
+  $("#equipe").innerHTML = html + `<li><button class="carte invite" type="button" id="btn-invite"><span class="av">${ico("i-plus")}</span><span class="nom">Invité·e</span></button></li>`;
+}
+
+function rendrePlateau() {
+  const n = etat.choisis.length;
+  $("#nb").textContent = n;
+  $("#vider").disabled = n === 0;
+  $("#plateau").innerHTML = n === 0
+    ? `<li class="plateau-vide">Touche une personne ci-dessous pour l'ajouter à la partie.</li>`
+    : etat.choisis.map(id => {
+        const p = parId(id);
+        return `<li><button class="jeton" type="button" data-retirer="${id}" aria-label="Retirer ${esc(p.nom)} des participants">${avatar(p, {pop:true, extra:`<span class="x">${ico("i-x")}</span>`})}<span class="nom">${esc(p.nom)}</span></button></li>`;
+      }).join("");
+  const b = $("#lancer");
+  b.disabled = n < 2;
+  b.textContent = n < 2 ? "Choisis au moins 2 participants" : `${etat.enCours ? "Reprendre" : "Lancer"} la partie à ${n}`;
+}
+
+function basculer(id) {
+  const i = etat.choisis.indexOf(id);
+  if (i >= 0) etat.choisis.splice(i, 1); else etat.choisis.push(id);
+  const carte = document.querySelector(`.carte[data-id="${id}"]`);
+  if (carte) carte.setAttribute("aria-pressed", i < 0);
+  rendrePlateau();
+  if (i < 0) { const pl = $("#plateau"); pl.scrollTo({left: pl.scrollWidth, behavior: reduit() ? "auto" : "smooth"}); }
+  vibrer(); sauver();
+}
+
+function rendrePartie() {
+  $("#p-titre").textContent = "JEUX-DI\u00A0!";
+  $("#p-date").textContent = dateDuJour();
+  $("#bas-gagne").checked = etat.basGagne;
+  $("#scores").innerHTML = etat.choisis.map(id => {
+    const p = parId(id), s = etat.scores[id] || 0;
+    return `<li class="ligne" data-ligne="${id}">
+      ${avatar(p)}
+      <span class="ident"><span class="nom">${esc(p.nom)}</span><span class="rang" data-rang></span></span>
+      <button class="btn-pt moins" type="button" data-moins="${id}" aria-label="Retirer 1 point à ${esc(p.nom)}">${ico("i-moins")}</button>
+      <button class="score" type="button" data-score="${id}" aria-label="Score de ${esc(p.nom)} : ${s}. Saisir des points">${s}</button>
+      <button class="btn-pt plus" type="button" data-plus="${id}" aria-label="Ajouter 1 point à ${esc(p.nom)}">${ico("i-plus")}</button>
+    </li>`;
+  }).join("");
+  majRangs();
+  majAnnuler();
+}
+
+function majRangs() {
+  const c = classement();
+  const tousEgaux = c.every(x => x.s === c[0].s);
+  for (const x of c) {
+    const li = document.querySelector(`[data-ligne="${x.p.id}"]`);
+    if (!li) continue;
+    const tete = !tousEgaux && x.rang === 1;
+    li.classList.toggle("tete", tete);
+    li.querySelector("[data-rang]").innerHTML = tousEgaux ? "" :
+      (tete ? `<svg aria-hidden="true" viewBox="0 0 64 46"><use href="#i-couronne"/></svg>` : "") + esc(rangTxt(x.rang, x.ex)) + (tete && !x.ex ? " · en tête" : "");
+  }
+}
+function majAnnuler() { $("#annuler").disabled = etat.historique.length === 0; }
+
+function majScore(id) {
+  const b = document.querySelector(`[data-score="${id}"]`);
+  if (!b) return;
+  const s = etat.scores[id] || 0, p = parId(id);
+  b.textContent = s;
+  b.setAttribute("aria-label", `Score de ${p.nom} : ${s}. Saisir des points`);
+  b.classList.remove("bump"); void b.offsetWidth; b.classList.add("bump");
+}
+
+function fixer(id, valeur) {
+  const avant = etat.scores[id] || 0;
+  if (valeur === avant) return;
+  etat.historique.push([id, avant]);
+  if (etat.historique.length > 300) etat.historique.shift();
+  etat.scores[id] = valeur;
+  majScore(id); majRangs(); majAnnuler(); vibrer(); sauver();
+}
+const ajouter = (id, d) => fixer(id, (etat.scores[id] || 0) + d);
+
+/* ---------- fin de partie ---------- */
+function rendreFin() {
+  const c = classement();
+  $("#f-jeu").textContent = "Partie du " + dateDuJour();
+  const premiers = c.filter(x => x.rang === 1);
+  $("#f-titre").textContent = premiers.length > 1
+    ? `Égalité au sommet entre ${premiers.map(x => x.p.nom).join(", ").replace(/, ([^,]*)$/, " et $1")} !`
+    : `Victoire ${de(premiers[0].p.nom)} !`;
+  const top = c.slice(0, 3);
+  const ordre = [[top[1], "m2", .25], [top[0], "m1", .5], [top[2], "m3", 0]];
+  $("#podium").innerHTML = ordre.map(([x, m, d]) => {
+    if (!x) return `<div class="marche ${m}"></div>`;
+    const bloc = m === "m1"
+      ? `<div class="bloc" style="--d:${d}s"><svg viewBox="0 0 64 64" aria-label="Trophée, ${esc(rangTxt(x.rang, x.ex))}" role="img"><use href="#i-trophee"/></svg></div>`
+      : `<div class="bloc" style="--d:${d}s"><span aria-label="${esc(rangTxt(x.rang, x.ex))}">${x.rang}</span></div>`;
+    const couronne = m === "m1" ? `<svg class="couronne" viewBox="0 0 64 46" aria-hidden="true"><use href="#i-couronne"/></svg>` : "";
+    return `<div class="marche ${m}">
+      <div class="perso" style="--d:${d}s" ${m === "m1" ? 'id="gagnant" title="Encore des feux d\'artifice !"' : ""}>${couronne}${avatar(x.p, {pop:true, anneau:true})}
+        <span class="p-nom">${esc(x.p.nom)}</span><span class="p-score">${pts(x.s)}</span></div>
+      ${bloc}</div>`;
+  }).join("");
+  const reste = c.slice(3);
+  $("#reste-bloc").hidden = reste.length === 0;
+  $("#reste").innerHTML = reste.map(x => `<li><span class="r-rang">${esc(rangTxt(x.rang, false))}</span>${avatar(x.p)}<span class="r-nom">${esc(x.p.nom)}${x.ex ? ' <small style="color:var(--sourd);font-weight:500">ex æquo</small>' : ""}</span><span class="r-score">${pts(x.s)}</span></li>`).join("");
+  if (!reduit()) setTimeout(() => { if (etat.vue === "fin") Feux.lancer(5200); }, 1500);
+}
+
+/* ---------- feux d'artifice (couleurs des palettes Carasso) ---------- */
+const Feux = (() => {
+  const COULEURS = ["#FDB035","#FBDB65","#24C0B5","#FE8675","#AAC462","#FFFFFF"];
+  let cv, ctx, W = 0, H = 0, raf = 0, jusqua = 0, dernier = 0, prec = 0, parts = [], fusees = [];
+  const G = 0.16;
+  function taille() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    W = innerWidth; H = innerHeight;
+    cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function eclat(x, y) {
+    const c = COULEURS[Math.random() * COULEURS.length | 0];
+    const n = 60 + (Math.random() * 40 | 0), v = 3.4 + Math.random() * 1.8;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, s = Math.sqrt(Math.random()) * v;
+      parts.push({x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, vie: 1, d: .009 + Math.random() * .012, c: Math.random() < .2 ? "#FFFFFF" : c});
+    }
+  }
+  function fusee() {
+    const x = W * (.12 + Math.random() * .76), cible = H * (.1 + Math.random() * .32);
+    fusees.push({x, y: H + 8, vx: (Math.random() - .5) * 1.4, vy: -Math.sqrt(2 * G * (H + 8 - cible)), c: COULEURS[Math.random() * COULEURS.length | 0]});
+  }
+  function image(t) {
+    const k = Math.min(3, (t - (prec || t)) / 16.67 || 1); prec = t;
+    ctx.clearRect(0, 0, W, H);
+    if (t < jusqua && t - dernier > 380 + Math.random() * 260) { fusee(); dernier = t; }
+    ctx.lineCap = "round";
+    for (let i = fusees.length - 1; i >= 0; i--) {
+      const f = fusees[i], px = f.x, py = f.y;
+      f.vy += G * k; f.x += f.vx * k; f.y += f.vy * k;
+      ctx.globalAlpha = .9; ctx.strokeStyle = f.c; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.moveTo(px - f.vx * 3, py - f.vy * 3); ctx.lineTo(f.x, f.y); ctx.stroke();
+      if (f.vy >= -0.5) { eclat(f.x, f.y); fusees.splice(i, 1); }
+    }
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i];
+      p.vx *= Math.pow(.975, k); p.vy = p.vy * Math.pow(.975, k) + .05 * k;
+      p.x += p.vx * k; p.y += p.vy * k; p.vie -= p.d * k;
+      if (p.vie <= 0) { parts.splice(i, 1); continue; }
+      ctx.globalAlpha = Math.min(1, p.vie * 1.4); ctx.strokeStyle = p.c; ctx.lineWidth = 2.4;
+      ctx.beginPath(); ctx.moveTo(p.x - p.vx * 2.6, p.y - p.vy * 2.6); ctx.lineTo(p.x, p.y); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    if (t >= jusqua && !parts.length && !fusees.length) { raf = 0; prec = 0; ctx.clearRect(0, 0, W, H); return; }
+    raf = requestAnimationFrame(image);
+  }
+  return {
+    lancer(ms) {
+      cv = cv || $("#feux"); ctx = ctx || cv.getContext("2d");
+      taille();
+      jusqua = performance.now() + ms;
+      const g = $("#gagnant");
+      if (g) { const r = g.getBoundingClientRect(); eclat(r.left + r.width / 2, Math.max(60, r.top - 20)); }
+      setTimeout(() => eclat(W * .22, H * .2), 250);
+      setTimeout(() => eclat(W * .78, H * .24), 500);
+      if (!raf) raf = requestAnimationFrame(image);
+    },
+    stop() { if (raf) cancelAnimationFrame(raf); raf = 0; prec = 0; parts = []; fusees = []; if (ctx) ctx.clearRect(0, 0, W, H); },
+    taille() { if (raf) taille(); }
+  };
+})();
+addEventListener("resize", () => Feux.taille());
+
+/* ---------- tiroirs ---------- */
+let cible = null;
+function ouvrir(el, focus) { el.hidden = false; setTimeout(() => focus && focus.focus(), 60); }
+function fermer() { document.querySelectorAll(".voile").forEach(v => v.hidden = true); cible = null; }
+function ouvrirPoints(id) {
+  cible = id; const p = parId(id);
+  $("#tp-av").innerHTML = avatar(p);
+  $("#tp-titre").textContent = "Points pour " + p.nom;
+  $("#tp-actuel").textContent = "Score actuel : " + (etat.scores[id] || 0);
+  $("#tp-val").value = "";
+  ouvrir($("#t-points"), $("#tp-val"));
+}
+const valeurSaisie = () => { const v = parseInt($("#tp-val").value.replace(/[^\d-]/g, ""), 10); return Number.isFinite(v) ? v : null; };
+
+/* ---------- événements ---------- */
+document.addEventListener("click", e => {
+  const t = e.target.closest("button, .voile, #gagnant");
+  if (!t) return;
+  if (t.classList.contains("voile")) { if (e.target === t) fermer(); return; }
+  if (t.id === "gagnant") { if (!reduit()) Feux.lancer(2600); return; }
+  const d = t.dataset;
+  if (d.fermer !== undefined) return fermer();
+  if (t.id === "btn-invite") { $("#ti-nom").value = ""; return ouvrir($("#t-invite"), $("#ti-nom")); }
+  if (d.suppr) {
+    etat.invites = etat.invites.filter(g => g.id !== d.suppr);
+    etat.choisis = etat.choisis.filter(x => x !== d.suppr);
+    delete etat.scores[d.suppr];
+    rendreEquipe(); rendrePlateau(); return sauver();
+  }
+  if (d.id) return basculer(d.id);
+  if (d.retirer) return basculer(d.retirer);
+  if (d.plus) return ajouter(d.plus, 1);
+  if (d.moins) return ajouter(d.moins, -1);
+  if (d.score) return ouvrirPoints(d.score);
+  switch (t.id) {
+    case "vider": etat.choisis = []; rendreEquipe(); rendrePlateau(); return sauver();
+    case "lancer":
+      if (etat.choisis.length < 2) return;
+      etat.choisis.forEach(id => { if (!(id in etat.scores)) etat.scores[id] = 0; });
+      etat.enCours = true; return montrer("partie");
+    case "retour": return montrer("accueil");
+    case "annuler": {
+      const h = etat.historique.pop(); if (!h) return;
+      etat.scores[h[0]] = h[1];
+      if (etat.choisis.includes(h[0])) { majScore(h[0]); majRangs(); }
+      majAnnuler(); return sauver();
+    }
+    case "fin": return montrer("fin");
+    case "revanche": etat.scores = {}; etat.choisis.forEach(id => etat.scores[id] = 0); etat.historique = []; return montrer("partie");
+    case "reprendre": return montrer("partie");
+    case "nouvelle": etat.scores = {}; etat.historique = []; etat.enCours = false; return montrer("accueil");
+    case "tp-plus": case "tp-moins": case "tp-fixer": {
+      const v = valeurSaisie(); if (v === null || cible === null) { $("#tp-val").focus(); return; }
+      if (t.id === "tp-fixer") fixer(cible, v); else ajouter(cible, t.id === "tp-plus" ? v : -v);
+      return fermer();
+    }
+  }
+});
+$("#tp-val").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); $("#tp-plus").click(); } });
+$("#ti-form").addEventListener("submit", e => {
+  e.preventDefault();
+  const nom = $("#ti-nom").value.trim().replace(/\s+/g, " ");
+  if (!nom) return $("#ti-nom").focus();
+  const id = "g" + Date.now().toString(36);
+  etat.invites.push({id, nom, c: etat.invites.length + 2});
+  etat.choisis.push(id);
+  fermer(); rendreEquipe(); rendrePlateau(); sauver();
+});
+document.addEventListener("keydown", e => { if (e.key === "Escape") fermer(); });
+$("#bas-gagne").addEventListener("change", e => { etat.basGagne = e.target.checked; majRangs(); sauver(); });
+
+/* ---------- démarrage ---------- */
+function demarrer(data) {
+  const src = data && data.vue ? data : charger();
+  etat = Object.assign(defaut(), src || {});
+  etat.choisis = etat.choisis.filter(id => parId(id));
+  if (etat.vue !== "accueil" && etat.choisis.length < 2) etat.vue = "accueil";
+  montrer(etat.vue);
+}
+window.claude?.hot?.snapshot?.(() => etat);
+window.claude?.hot?.ready ? window.claude.hot.ready(demarrer) : demarrer(window.claude?.hot?.data ?? {});
+})();
+</script>
+</body>
+</html>
