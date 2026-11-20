@@ -188,7 +188,7 @@ svg.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;st
 .m1 .bloc svg{width:52px;height:52px}
 .m2 .bloc{height:98px}
 .m3 .bloc{height:70px}
-.couronne{position:absolute;top:-50px;left:50%;width:64px;height:46px;transform:translateX(-50%) rotate(-9deg);animation:couronne .8s cubic-bezier(.3,1.6,.5,1) both;animation-delay:1.6s;z-index:3;filter:drop-shadow(0 4px 6px rgba(0,25,74,.35))}
+.couronne{position:absolute;top:-54px;left:50%;width:72px;height:54px;transform:translateX(-50%) rotate(-9deg);animation:couronne .8s cubic-bezier(.3,1.6,.5,1) both;animation-delay:1.6s;z-index:3;filter:drop-shadow(0 4px 6px rgba(0,25,74,.35))}
 .m1 .perso{cursor:pointer}
 @keyframes monte{from{transform:scaleY(0)}}
 @keyframes surgit{from{opacity:0;transform:translateY(26px) scale(.75)}}
@@ -286,7 +286,7 @@ svg.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;st
   <symbol id="i-maj" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></symbol>
   <symbol id="i-poubelle" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
   <symbol id="i-drapeau" viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></symbol>
-  <symbol id="i-couronne" viewBox="0 0 64 46"><path d="M6 16l13 11L32 6l13 21 13-11-5 24H11z" style="fill:var(--ambre);stroke:var(--nuit)" stroke-width="3.5" stroke-linejoin="round"/><circle cx="6" cy="14" r="5" style="fill:var(--ambre);stroke:var(--nuit)" stroke-width="3"/><circle cx="32" cy="5" r="5" style="fill:var(--ambre);stroke:var(--nuit)" stroke-width="3"/><circle cx="58" cy="14" r="5" style="fill:var(--ambre);stroke:var(--nuit)" stroke-width="3"/><circle cx="32" cy="30" r="4" style="fill:var(--nuit)"/></symbol>
+  <symbol id="i-couronne" viewBox="-4 -4 72 54"><path d="M6 16l13 11L32 6l13 21 13-11-5 24H11z" style="fill:var(--ambre);stroke:var(--nuit)" stroke-width="3.5" stroke-linejoin="round"/><circle cx="6" cy="14" r="5" style="fill:var(--ambre);stroke:var(--nuit)" stroke-width="3"/><circle cx="32" cy="5" r="5" style="fill:var(--ambre);stroke:var(--nuit)" stroke-width="3"/><circle cx="58" cy="14" r="5" style="fill:var(--ambre);stroke:var(--nuit)" stroke-width="3"/><circle cx="32" cy="30" r="4" style="fill:var(--nuit)"/></symbol>
   <symbol id="i-trophee" viewBox="0 0 64 64"><path d="M18 8h28v14c0 9.5-6.3 16-14 16s-14-6.5-14-16z" style="fill:currentColor"/><path d="M18 12H9v4c0 7 4.5 11.5 10.5 12.5M46 12h9v4c0 7-4.5 11.5-10.5 12.5" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="M28 37h8v10h-8z" style="fill:currentColor"/><rect x="19" y="47" width="26" height="8" rx="3" style="fill:currentColor"/></symbol>
 </svg>
 
@@ -620,7 +620,7 @@ function majRangs() {
     const tete = !tousEgaux && x.rang === 1;
     li.classList.toggle("tete", tete);
     li.querySelector("[data-rang]").innerHTML = tousEgaux ? "" :
-      (tete ? `<svg aria-hidden="true" viewBox="0 0 64 46"><use href="#i-couronne"/></svg>` : "") + esc(rangTxt(x.rang, x.ex)) + (tete && !x.ex ? " · en tête" : "");
+      (tete ? `<svg aria-hidden="true" viewBox="0 0 72 54"><use href="#i-couronne"/></svg>` : "") + esc(rangTxt(x.rang, x.ex)) + (tete && !x.ex ? " · en tête" : "");
   }
 }
 function majAnnuler() { $("#annuler").disabled = etat.historique.length === 0; }
@@ -674,7 +674,7 @@ function rendrePodium(c, surtitre) {
     const bloc = m === "m1"
       ? `<div class="bloc" style="--d:${d}s"><svg viewBox="0 0 64 64" aria-label="Trophée, ${esc(rangTxt(x.rang, x.ex))}" role="img"><use href="#i-trophee"/></svg></div>`
       : `<div class="bloc" style="--d:${d}s"><span aria-label="${esc(rangTxt(x.rang, x.ex))}">${x.rang}</span></div>`;
-    const couronne = m === "m1" ? `<svg class="couronne" viewBox="0 0 64 46" aria-hidden="true"><use href="#i-couronne"/></svg>` : "";
+    const couronne = m === "m1" ? `<svg class="couronne" viewBox="0 0 72 54" aria-hidden="true"><use href="#i-couronne"/></svg>` : "";
     return `<div class="marche ${m}">
       <div class="perso" style="--d:${d}s" ${m === "m1" ? 'id="gagnant" title="Encore des feux d\'artifice !"' : ""}>${couronne}${avatar(x.p, {pop:true, anneau:true})}
         <span class="p-nom">${esc(x.p.nom)}</span><span class="p-score">${esc(x.val)}</span></div>
