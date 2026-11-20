@@ -118,7 +118,7 @@ svg.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;st
 .entete-titre{flex:1;display:flex;align-items:center;gap:10px;min-width:0}
 .sceau{width:38px;height:38px;flex:none;--sceau-fond:var(--blanc);--sceau-c:var(--bleu)}
 .entete-titre strong{display:block;font-weight:800;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.entete-titre small{display:block;font-size:13px;font-weight:500;opacity:.88}
+.entete-titre small{display:block;font-size:13px;font-weight:500;opacity:.88;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .reglages{display:flex;align-items:center;justify-content:space-between;gap:10px 14px;padding:14px 14px 12px;flex-wrap:wrap}
 .bascule{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:500;cursor:pointer}
 .bascule input{appearance:none;-webkit-appearance:none;width:46px;height:28px;border-radius:999px;background:var(--trait);position:relative;transition:background .2s;flex:none;cursor:pointer}
@@ -213,6 +213,16 @@ svg.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;st
 .segment{display:flex;background:var(--blanc);border-radius:12px;padding:4px;gap:2px;border:1px solid var(--trait);width:100%}
 .segment button{flex:1;min-height:40px;border-radius:9px;font-weight:700;font-size:14px;color:var(--nuit);padding:0 6px}
 .segment button[aria-pressed="true"]{background:var(--bleu);color:var(--blanc);font-weight:800}
+.periode{display:flex;flex-direction:column;gap:8px;padding:0 14px 14px}
+.periode .etiq{font-size:11px;letter-spacing:.14em}
+.segment.contour{background:transparent;border:2px solid var(--trait)}
+.segment.contour button{min-height:36px;font-size:13px}
+.segment.contour button[aria-pressed="true"]{background:var(--nuit)}
+.periode select,.periode input[type="date"]{width:100%;font:inherit;font-size:16px;font-weight:700;color:var(--nuit);background:var(--blanc);border:2px solid var(--trait);border-radius:12px;padding:10px 12px;min-height:46px}
+.periode select{appearance:none;-webkit-appearance:none;padding-right:40px;background:var(--blanc) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230052F5' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 12px center/18px}
+.periode select:focus,.periode input[type="date"]:focus{outline:none;border-color:var(--bleu)}
+.dates{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dates label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:var(--sourd);min-width:0}
 .cl-aide{padding:0 16px 12px;font-size:13px;color:var(--sourd);font-weight:500;line-height:1.45;max-width:62ch}
 .cl-etat{margin:0 12px 12px;padding:12px 14px;border-radius:14px;background:var(--blanc);font-size:14px;font-weight:500;line-height:1.4;display:flex;gap:12px;align-items:center;justify-content:space-between;border-left:4px solid var(--bleu)}
 .cl-etat.ko{border-left-color:var(--corail)}
@@ -373,6 +383,21 @@ svg.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;st
       <button type="button" data-vue-cl="moyenne" aria-pressed="false">Moyenne par partie</button>
     </div>
   </div>
+  <div class="periode">
+    <span class="etiq" id="pe-etiq">Période</span>
+    <div class="segment contour" role="group" aria-labelledby="pe-etiq">
+      <button type="button" data-periode="tout" aria-pressed="true">Tout</button>
+      <button type="button" data-periode="mois" aria-pressed="false">Mois</button>
+      <button type="button" data-periode="annee" aria-pressed="false">Année</button>
+      <button type="button" data-periode="dates" aria-pressed="false">Dates</button>
+    </div>
+    <select id="pe-mois" aria-label="Mois" hidden></select>
+    <select id="pe-annee" aria-label="Année" hidden></select>
+    <div class="dates" id="pe-dates" hidden>
+      <label for="pe-du">Du<input type="date" id="pe-du"></label>
+      <label for="pe-au">Au<input type="date" id="pe-au"></label>
+    </div>
+  </div>
   <p class="cl-aide" id="cl-aide"></p>
   <div id="cl-etat"></div>
   <ol class="cl-liste" id="cl-liste"></ol>
@@ -476,7 +501,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const reduit = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const defaut = () => ({vue:"accueil", choisis:[], scores:{}, basGagne:false, invites:[], historique:[], enCours:false, jeu:"", enregistree:false, idEnregistre:"", finMode:"partie", vueCl:"points"});
+const defaut = () => ({vue:"accueil", choisis:[], scores:{}, basGagne:false, invites:[], historique:[], enCours:false, jeu:"", enregistree:false, idEnregistre:"", finMode:"partie", vueCl:"points", periode:null});
 let etat = defaut();
 
 const personnes = () => team.concat(etat.invites.map(g => ({...g, disque:`var(${DISQUES[g.c % 7]})`})));
@@ -627,7 +652,7 @@ function rendreFin() {
   if (general) {
     const g = classementGeneral(etat.vueCl);
     rendrePodium(g.map(x => ({p: x.p, rang: x.rang, ex: x.ex, val: valTxt(x.v, etat.vueCl)})),
-      "Classement général · " + (etat.vueCl === "moyenne" ? "moyenne par partie" : "points"));
+      ["Classement général", libellePeriode(), etat.vueCl === "moyenne" ? "moyenne par partie" : "points"].filter(Boolean).join(" · "));
   } else {
     const jeu = etat.jeu.trim();
     rendrePodium(classement().map(x => ({...x, val: pts(x.s)})), (jeu ? jeu + " · " : "") + dateDuJour());
@@ -672,9 +697,54 @@ const nombre = (v, dec) => v.toLocaleString("fr-FR", {minimumFractionDigits: dec
 const valTxt = (v, vue) => vue === "moyenne" ? `${nombre(v, 1)}\u00A0pts/partie` : pts(v);
 const pluriel = (n, mot, pl) => `${n}\u00A0${n > 1 ? (pl || mot + "s") : mot}`;
 
-function stats() {
+/* ---------- période ---------- */
+const deux = n => String(n).padStart(2, "0");
+const jourLocal = d => `${d.getFullYear()}-${deux(d.getMonth() + 1)}-${deux(d.getDate())}`;
+const partiesToutes = () => (donnees && donnees.parties) || [];
+function periode() {
+  const t = jourLocal(new Date());
+  const p = Object.assign({type: "tout", mois: t.slice(0, 7), annee: t.slice(0, 4), du: t.slice(0, 8) + "01", au: t}, etat.periode || {});
+  etat.periode = p;
+  return p;
+}
+function bornes() {
+  const p = periode();
+  const a = p.du || "0000-00-00", b = p.au || "9999-99-99";
+  return a <= b ? [a, b] : [b, a];
+}
+function dansPeriode(pa) {
+  const p = periode(), j = jourLocal(new Date(pa.date));
+  if (p.type === "mois") return j.slice(0, 7) === p.mois;
+  if (p.type === "annee") return j.slice(0, 4) === p.annee;
+  if (p.type === "dates") { const [a, b] = bornes(); return j >= a && j <= b; }
+  return true;
+}
+const partiesPeriode = () => partiesToutes().filter(dansPeriode);
+const nomMois = ym => new Date(ym + "-15T12:00:00").toLocaleDateString("fr-FR", {month: "long", year: "numeric"});
+const dateCourte = ymd => new Date(ymd + "T12:00:00").toLocaleDateString("fr-FR", {day: "numeric", month: "short", year: "numeric"});
+function libellePeriode() {
+  const p = periode();
+  if (p.type === "mois") return nomMois(p.mois);
+  if (p.type === "annee") return "année " + p.annee;
+  if (p.type === "dates") { const [a, b] = bornes(); return `du ${dateCourte(a)} au ${dateCourte(b)}`; }
+  return "";
+}
+function rendrePeriode() {
+  const p = periode();
+  document.querySelectorAll("[data-periode]").forEach(b => b.setAttribute("aria-pressed", b.dataset.periode === p.type));
+  const jours = partiesToutes().map(pa => jourLocal(new Date(pa.date)));
+  const mois = [...new Set([p.mois, jourLocal(new Date()).slice(0, 7), ...jours.map(j => j.slice(0, 7))])].sort().reverse();
+  const annees = [...new Set([p.annee, String(new Date().getFullYear()), ...jours.map(j => j.slice(0, 4))])].sort().reverse();
+  const sm = $("#pe-mois"), sa = $("#pe-annee");
+  sm.innerHTML = mois.map(m => `<option value="${m}"${m === p.mois ? " selected" : ""}>${esc(nomMois(m).replace(/^./, c => c.toUpperCase()))}</option>`).join("");
+  sa.innerHTML = annees.map(a => `<option value="${a}"${a === p.annee ? " selected" : ""}>${a}</option>`).join("");
+  $("#pe-du").value = p.du; $("#pe-au").value = p.au;
+  sm.hidden = p.type !== "mois"; sa.hidden = p.type !== "annee"; $("#pe-dates").hidden = p.type !== "dates";
+}
+
+function stats(liste) {
   const joueurs = {}, jeux = {};
-  for (const pa of (donnees && donnees.parties) || []) {
+  for (const pa of liste || partiesToutes()) {
     const kj = cleJeu(pa.jeu);
     if (!jeux[kj]) jeux[kj] = {nom: pa.jeu, n: 0};
     jeux[kj].n++;
@@ -693,7 +763,7 @@ function stats() {
 function classementGeneral(vue) {
   const val = j => vue === "moyenne" ? j.points / j.parties : j.points;
   const cle = j => Math.round(val(j) * 100);
-  const tri = stats().joueurs.sort((a, b) => cle(b) - cle(a) || b.points - a.points || a.nom.localeCompare(b.nom, "fr"));
+  const tri = stats(partiesPeriode()).joueurs.sort((a, b) => cle(b) - cle(a) || b.points - a.points || a.nom.localeCompare(b.nom, "fr"));
   return tri.map(j => ({j, p: personneGlobale(j.id, j.nom), v: val(j),
     rang: 1 + tri.filter(o => cle(o) > cle(j)).length,
     ex: tri.filter(o => cle(o) === cle(j)).length > 1}));
@@ -728,9 +798,12 @@ async function chargerClassement() {
 const rendreSiClassement = () => { if (etat.vue === "classement") rendreClassement(); };
 
 function rendreClassement() {
-  const vue = etat.vueCl, s = stats(), g = classementGeneral(vue);
-  const nbParties = ((donnees && donnees.parties) || []).length;
-  $("#cl-resume").textContent = nbParties ? `${pluriel(nbParties, "partie")} · ${pluriel(s.jeux.length, "jeu", "jeux")}` : "Aucune partie enregistrée";
+  const vue = etat.vueCl, parties = partiesPeriode(), s = stats(parties), g = classementGeneral(vue);
+  const nbParties = parties.length, nbTotal = partiesToutes().length;
+  const lib = libellePeriode();
+  rendrePeriode();
+  $("#cl-resume").textContent = (lib ? lib.replace(/^./, c => c.toUpperCase()) + " · " : "") +
+    (nbParties ? `${pluriel(nbParties, "partie")} · ${pluriel(s.jeux.length, "jeu", "jeux")}` : "aucune partie");
   document.querySelectorAll("[data-vue-cl]").forEach(b => b.setAttribute("aria-pressed", b.dataset.vueCl === vue));
   $("#cl-aide").textContent = vue === "moyenne"
     ? "Points du classement divisés par le nombre de parties jouées."
@@ -740,6 +813,7 @@ function rendreClassement() {
   if (!API) msg = `<div class="cl-etat ko">Le classement général n'est pas encore relié à Google Sheets.</div>`;
   else if (erreurCl) msg = `<div class="cl-etat ko"><span>${esc(erreurCl)}</span><button class="lien" id="cl-reessayer" type="button">Réessayer</button></div>`;
   else if (chargement && !donnees) msg = `<div class="cl-etat">Chargement du classement…</div>`;
+  else if (!nbParties && nbTotal) msg = `<div class="cl-etat">Aucune partie enregistrée sur cette période (${esc(lib)}).</div>`;
   else if (!nbParties) msg = `<div class="cl-etat">Aucune partie enregistrée pour l'instant. Termine une partie puis touche «&nbsp;Enregistrer la partie&nbsp;».</div>`;
   $("#cl-etat").innerHTML = msg;
   $("#cl-liste").innerHTML = g.map(x => {
@@ -761,7 +835,6 @@ function rendreClassement() {
   const max = s.jeux.length ? s.jeux[0].n : 1;
   $("#cl-jeux-bloc").hidden = !s.jeux.length;
   $("#cl-jeux").innerHTML = s.jeux.map(k => `<li class="jeu-ligne"><span class="nom">${esc(k.nom)}</span><span class="n">${pluriel(k.n, "partie")}</span><span class="jauge"><span style="width:${Math.max(4, k.n / max * 100)}%"></span></span></li>`).join("");
-  const parties = (donnees && donnees.parties) || [];
   $("#cl-hist-bloc").hidden = !parties.length;
   const visibles = voirTout ? parties : parties.slice(0, 6);
   $("#cl-hist").innerHTML = visibles.map(pa => {
@@ -894,6 +967,7 @@ document.addEventListener("click", e => {
   if (d.moins) return ajouter(d.moins, -1);
   if (d.score) return ouvrirPoints(d.score);
   if (d.vueCl) { etat.vueCl = d.vueCl; rendreClassement(); return sauver(); }
+  if (d.periode) { periode().type = d.periode; voirTout = false; rendreClassement(); return sauver(); }
   if (d.effacer) {
     const pa = donnees.parties.find(x => x.id === d.effacer); if (!pa) return;
     aEffacer = pa.id;
@@ -984,6 +1058,8 @@ $("#tf-form").addEventListener("submit", async e => {
   } finally { b.classList.remove("attente"); b.textContent = "Supprimer"; }
 });
 $("#nom-jeu").addEventListener("input", e => { etat.jeu = e.target.value; sauver(); });
+[["#pe-mois", "mois"], ["#pe-annee", "annee"], ["#pe-du", "du"], ["#pe-au", "au"]].forEach(([sel, cle]) =>
+  $(sel).addEventListener("change", e => { periode()[cle] = e.target.value; voirTout = false; rendreClassement(); sauver(); }));
 document.addEventListener("keydown", e => { if (e.key === "Escape") fermer(); });
 $("#bas-gagne").addEventListener("change", e => { etat.basGagne = e.target.checked; majRangs(); sauver(); });
 
