@@ -254,6 +254,9 @@ svg.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;st
 .hist li{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--trait)}
 .hist li:first-child{border-top:0;padding-top:0}
 .hist .date{font-size:12px;font-weight:700;color:var(--sourd);min-width:52px;font-variant-numeric:tabular-nums}
+.ligne-hist{flex:1;min-width:0;display:flex;align-items:center;gap:10px;text-align:left;padding:6px 6px 6px 0;border-radius:10px;transition:background .15s}
+.ligne-hist:active{background:var(--brume)}
+.ligne-hist .chevron{width:18px;height:18px;color:var(--bleu);flex:none;stroke-width:3}
 .hist .quoi{flex:1;min-width:0;font-size:14px;font-weight:700}
 .hist .quoi span{display:block;font-size:12px;color:var(--sourd);font-weight:500;margin-top:2px}
 .poubelle{width:40px;height:40px;border-radius:10px;color:var(--sourd);display:grid;place-items:center;flex:none}
@@ -285,6 +288,7 @@ svg.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;st
   <symbol id="i-enreg" viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5L12 4l4.5 4.5"/><path d="M5 14v5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-5"/></symbol>
   <symbol id="i-maj" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 4v5h-5"/></symbol>
   <symbol id="i-poubelle" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></symbol>
+  <symbol id="i-suite" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
   <symbol id="i-drapeau" viewBox="0 0 24 24"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></symbol>
   <symbol id="i-couronne" viewBox="-4 -4 72 54"><path d="M6 16l13 11L32 6l13 21 13-11-5 24H11z" style="fill:var(--ambre);stroke:var(--nuit)" stroke-width="3.5" stroke-linejoin="round"/><circle cx="6" cy="14" r="5" style="fill:var(--ambre);stroke:var(--nuit)" stroke-width="3"/><circle cx="32" cy="5" r="5" style="fill:var(--ambre);stroke:var(--nuit)" stroke-width="3"/><circle cx="58" cy="14" r="5" style="fill:var(--ambre);stroke:var(--nuit)" stroke-width="3"/><circle cx="32" cy="30" r="4" style="fill:var(--nuit)"/></symbol>
   <symbol id="i-trophee" viewBox="0 0 64 64"><path d="M18 8h28v14c0 9.5-6.3 16-14 16s-14-6.5-14-16z" style="fill:currentColor"/><path d="M18 12H9v4c0 7 4.5 11.5 10.5 12.5M46 12h9v4c0 7-4.5 11.5-10.5 12.5" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/><path d="M28 37h8v10h-8z" style="fill:currentColor"/><rect x="19" y="47" width="26" height="8" rx="3" style="fill:currentColor"/></symbol>
@@ -501,7 +505,7 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const reduit = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const defaut = () => ({vue:"accueil", choisis:[], scores:{}, basGagne:false, invites:[], historique:[], enCours:false, jeu:"", enregistree:false, idEnregistre:"", finMode:"partie", vueCl:"points", periode:null});
+const defaut = () => ({vue:"accueil", choisis:[], scores:{}, basGagne:false, invites:[], historique:[], enCours:false, jeu:"", enregistree:false, idEnregistre:"", finMode:"partie", vueCl:"points", periode:null, partieVue:""});
 let etat = defaut();
 
 const personnes = () => team.concat(etat.invites.map(g => ({...g, disque:`var(${DISQUES[g.c % 7]})`})));
@@ -646,10 +650,17 @@ const ajouter = (id, d) => fixer(id, (etat.scores[id] || 0) + d);
 
 /* ---------- fin de partie ---------- */
 function rendreFin() {
-  const general = etat.finMode === "general";
+  const mode = etat.finMode, general = mode !== "partie";
   $("#fa-partie").hidden = general;
   $("#fa-general").hidden = !general;
-  if (general) {
+  if (mode === "archive") {
+    const pa = partiesToutes().find(x => x.id === etat.partieVue);
+    if (!pa) return montrer("classement");
+    const date = new Date(pa.date).toLocaleDateString("fr-FR", {weekday: "long", day: "numeric", month: "long", year: "numeric"});
+    rendrePodium(pa.resultats.map(r => ({p: personneGlobale(r.id, r.nom), rang: r.rang,
+      ex: pa.resultats.filter(o => o.rang === r.rang).length > 1, val: pts(r.score)})),
+      [pa.jeu, date, pa.basGagne ? "le plus bas gagne" : ""].filter(Boolean).join(" · "));
+  } else if (mode === "general") {
     const g = classementGeneral(etat.vueCl);
     rendrePodium(g.map(x => ({p: x.p, rang: x.rang, ex: x.ex, val: valTxt(x.v, etat.vueCl)})),
       ["Classement général", libellePeriode(), etat.vueCl === "moyenne" ? "moyenne par partie" : "points"].filter(Boolean).join(" · "));
@@ -658,7 +669,7 @@ function rendreFin() {
     rendrePodium(classement().map(x => ({...x, val: pts(x.s)})), (jeu ? jeu + " · " : "") + dateDuJour());
     majBoutonEnreg();
   }
-  if (!reduit()) setTimeout(() => { if (etat.vue === "fin") Feux.lancer(5200); }, 1500);
+  if (!reduit() && mode !== "archive") setTimeout(() => { if (etat.vue === "fin") Feux.lancer(5200); }, 1500);
 }
 
 function rendrePodium(c, surtitre) {
@@ -686,6 +697,7 @@ function rendrePodium(c, surtitre) {
 }
 
 /* ---------- classement général (Google Sheets) ---------- */
+let scrollClassement = 0;
 let donnees = null, chargement = false, erreurCl = "", voirTout = false, aEffacer = null;
 try { donnees = JSON.parse(localStorage.getItem(CLE_CL)); } catch (e) {}
 const cleJeu = n => String(n).normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase().replace(/\s+/g, " ");
@@ -840,7 +852,7 @@ function rendreClassement() {
   $("#cl-hist").innerHTML = visibles.map(pa => {
     const gagnants = pa.resultats.filter(r => r.rang === 1).map(r => personneGlobale(r.id, r.nom).nom);
     const date = new Date(pa.date).toLocaleDateString("fr-FR", {day: "numeric", month: "short"});
-    return `<li><span class="date">${esc(date)}</span><span class="quoi">${esc(pa.jeu)}<span>${gagnants.length > 1 ? "Ex æquo : " : "Victoire : "}${esc(gagnants.join(", "))} · ${pluriel(pa.resultats.length, "participant")}</span></span>
+    return `<li><button class="ligne-hist" type="button" data-partie="${esc(pa.id)}" aria-label="Voir le classement de la partie de ${esc(pa.jeu)} du ${esc(date)}"><span class="date">${esc(date)}</span><span class="quoi">${esc(pa.jeu)}<span>${gagnants.length > 1 ? "Ex æquo : " : "Victoire : "}${esc(gagnants.join(", "))} · ${pluriel(pa.resultats.length, "participant")}</span></span>${ico("i-suite", "chevron")}</button>
       <button class="poubelle" type="button" data-effacer="${esc(pa.id)}" aria-label="Supprimer la partie de ${esc(pa.jeu)} du ${esc(date)}"><svg class="ico"><use href="#i-poubelle"/></svg></button></li>`;
   }).join("") + (parties.length > 6 ? `<li><button class="lien" id="voir-tout" type="button">${voirTout ? "Afficher moins" : `Afficher les ${parties.length} parties`}</button></li>` : "");
   $("#decerner").disabled = !g.length;
@@ -968,6 +980,7 @@ document.addEventListener("click", e => {
   if (d.score) return ouvrirPoints(d.score);
   if (d.vueCl) { etat.vueCl = d.vueCl; rendreClassement(); return sauver(); }
   if (d.periode) { periode().type = d.periode; voirTout = false; rendreClassement(); return sauver(); }
+  if (d.partie) { scrollClassement = window.scrollY; etat.finMode = "archive"; etat.partieVue = d.partie; return montrer("fin"); }
   if (d.effacer) {
     const pa = donnees.parties.find(x => x.id === d.effacer); if (!pa) return;
     aEffacer = pa.id;
@@ -999,7 +1012,7 @@ document.addEventListener("click", e => {
     case "cl-maj": case "cl-reessayer": return chargerClassement();
     case "voir-tout": voirTout = !voirTout; return rendreClassement();
     case "decerner": etat.finMode = "general"; return montrer("fin");
-    case "retour-classement": return montrer("classement");
+    case "retour-classement": montrer("classement"); if (etat.finMode === "archive") window.scrollTo(0, scrollClassement); return;
     case "tp-plus": case "tp-moins": case "tp-fixer": {
       const v = valeurSaisie(); if (v === null || cible === null) { $("#tp-val").focus(); return; }
       if (t.id === "tp-fixer") fixer(cible, v); else ajouter(cible, t.id === "tp-plus" ? v : -v);
@@ -1068,8 +1081,8 @@ function demarrer(data) {
   const src = data && data.vue ? data : charger();
   etat = Object.assign(defaut(), src || {});
   etat.choisis = etat.choisis.filter(id => parId(id));
-  if (["partie","fin"].includes(etat.vue) && etat.finMode !== "general" && etat.choisis.length < 2) etat.vue = "accueil";
-  if (etat.vue === "fin" && etat.finMode === "general" && !donnees) etat.vue = "classement";
+  if ((etat.vue === "partie" || (etat.vue === "fin" && etat.finMode === "partie")) && etat.choisis.length < 2) etat.vue = "accueil";
+  if (etat.vue === "fin" && etat.finMode !== "partie" && !donnees) etat.vue = "classement";
   majJeuxConnus();
   montrer(etat.vue);
   if (etat.vue === "classement" || (API && !donnees)) chargerClassement();
