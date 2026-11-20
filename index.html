@@ -151,7 +151,7 @@ svg.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;st
 .tiroir-tete .av{--s:48px}
 .tiroir h3{font-size:19px;font-weight:800}
 .tiroir p{font-size:14px;color:var(--sourd);font-weight:500}
-.tiroir input{font-size:34px;font-weight:800;text-align:center;padding:10px;border:2px solid var(--trait);border-radius:16px;color:var(--nuit);width:100%;font-variant-numeric:tabular-nums}
+.tiroir input:not([type="checkbox"]){font-size:34px;font-weight:800;text-align:center;padding:10px;border:2px solid var(--trait);border-radius:16px;color:var(--nuit);width:100%;font-variant-numeric:tabular-nums}
 .tiroir input.texte{font-size:18px;text-align:left;font-weight:700;padding:13px 14px}
 .tiroir .etiq{font-size:12px;margin-bottom:-6px}
 .apercu{list-style:none;display:flex;flex-wrap:wrap;gap:6px}
@@ -159,7 +159,9 @@ svg.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;st
 .apercu b{color:var(--bleu);font-weight:800}
 .erreur{background:#FFF1EE;border-left:4px solid var(--corail);padding:9px 12px;border-radius:8px;color:var(--nuit);font-size:14px;font-weight:500}
 .cta.attente{opacity:.7;pointer-events:none}
-.tiroir input:focus{outline:none;border-color:var(--bleu)}
+.tiroir input:not([type="checkbox"]):focus{outline:none;border-color:var(--bleu)}
+.tiroir input[type="date"]{display:block;min-height:52px;background:var(--blanc);-webkit-appearance:none;appearance:none}
+.tiroir .bascule{margin:2px 0}
 .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .liens{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 @keyframes fondu{from{opacity:0}}
@@ -367,6 +369,7 @@ svg.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;st
   </div>
   <div class="fin-actions" id="fa-general" hidden>
     <button class="cta clair" id="retour-classement" type="button">Retour au classement</button>
+    <button class="secondaire" id="modifier-date" type="button" hidden>Modifier la date</button>
   </div>
   <svg class="logo" role="img" aria-label="Fondation Daniel &amp; Nina Carasso"><use href="#logo-carasso"/></svg>
 </section>
@@ -428,12 +431,29 @@ svg.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;st
     <ul class="apercu" id="te-apercu"></ul>
     <label class="etiq" for="te-jeu">Jeu</label>
     <input class="texte" id="te-jeu" type="text" maxlength="40" placeholder="Nom du jeu" autocomplete="off" list="jeux-connus">
+    <label class="bascule" for="te-autre"><input type="checkbox" id="te-autre"><span>Partie jouée un autre jour</span></label>
+    <input class="texte" id="te-date" type="date" aria-label="Date de la partie" hidden>
     <label class="etiq" for="te-mdp">Mot de passe</label>
     <input class="texte" id="te-mdp" type="password" autocomplete="off" placeholder="Mot de passe">
     <p class="erreur" id="te-erreur" role="alert" hidden></p>
     <div class="duo">
       <button class="secondaire" data-fermer type="button">Annuler</button>
       <button class="cta" id="te-ok" type="submit">Enregistrer</button>
+    </div>
+  </form>
+</div>
+<div class="voile" id="t-date" hidden>
+  <form class="tiroir" role="dialog" aria-modal="true" aria-labelledby="td-titre" id="td-form" novalidate>
+    <h3 id="td-titre">Modifier la date</h3>
+    <p id="td-texte"></p>
+    <label class="etiq" for="td-date">Nouvelle date</label>
+    <input class="texte" id="td-date" type="date">
+    <label class="etiq" for="td-mdp">Mot de passe</label>
+    <input class="texte" id="td-mdp" type="password" autocomplete="off" placeholder="Mot de passe">
+    <p class="erreur" id="td-erreur" role="alert" hidden></p>
+    <div class="duo">
+      <button class="secondaire" data-fermer type="button">Annuler</button>
+      <button class="cta" id="td-ok" type="submit">Enregistrer</button>
     </div>
   </form>
 </div>
@@ -649,17 +669,20 @@ function fixer(id, valeur) {
 const ajouter = (id, d) => fixer(id, (etat.scores[id] || 0) + d);
 
 /* ---------- fin de partie ---------- */
+const dateLongue = iso => new Date(iso).toLocaleDateString("fr-FR", {weekday: "long", day: "numeric", month: "long", year: "numeric"});
+const surtitreArchive = pa => [pa.jeu, dateLongue(pa.date), pa.basGagne ? "le plus bas gagne" : ""].filter(Boolean).join(" · ");
+const SCRIPT_ANCIEN = "Ton script Google n'est pas à jour : colle la nouvelle version de Code.gs puis déploie une nouvelle version.";
+
 function rendreFin() {
   const mode = etat.finMode, general = mode !== "partie";
   $("#fa-partie").hidden = general;
   $("#fa-general").hidden = !general;
+  $("#modifier-date").hidden = mode !== "archive";
   if (mode === "archive") {
     const pa = partiesToutes().find(x => x.id === etat.partieVue);
     if (!pa) return montrer("classement");
-    const date = new Date(pa.date).toLocaleDateString("fr-FR", {weekday: "long", day: "numeric", month: "long", year: "numeric"});
     rendrePodium(pa.resultats.map(r => ({p: personneGlobale(r.id, r.nom), rang: r.rang,
-      ex: pa.resultats.filter(o => o.rang === r.rang).length > 1, val: pts(r.score)})),
-      [pa.jeu, date, pa.basGagne ? "le plus bas gagne" : ""].filter(Boolean).join(" · "));
+      ex: pa.resultats.filter(o => o.rang === r.rang).length > 1, val: pts(r.score)})), surtitreArchive(pa));
   } else if (mode === "general") {
     const g = classementGeneral(etat.vueCl);
     rendrePodium(g.map(x => ({p: x.p, rang: x.rang, ex: x.ex, val: valTxt(x.v, etat.vueCl)})),
@@ -869,16 +892,19 @@ function ouvrirEnreg() {
   const c = classement(), n = c.length;
   $("#te-apercu").innerHTML = c.map(x => `<li><b>+${n - x.rang + 1}</b> ${esc(x.p.nom)}</li>`).join("");
   $("#te-jeu").value = etat.jeu;
+  const auj = jourLocal(new Date());
+  $("#te-autre").checked = false;
+  $("#te-date").hidden = true; $("#te-date").value = auj; $("#te-date").max = auj;
   $("#te-mdp").value = "";
   $("#te-erreur").hidden = true;
   ouvrir($("#t-enreg"), etat.jeu.trim() ? $("#te-mdp") : $("#te-jeu"));
 }
 function erreurTiroir(sel, txt) { const e = $(sel); e.textContent = txt; e.hidden = false; }
 let toastMinuteur = 0;
-function toast(txt) {
+function toast(txt, ms = 3200) {
   let t = $(".toast"); if (!t) { t = document.createElement("div"); t.className = "toast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
   t.textContent = txt; t.hidden = false;
-  clearTimeout(toastMinuteur); toastMinuteur = setTimeout(() => t.hidden = true, 3200);
+  clearTimeout(toastMinuteur); toastMinuteur = setTimeout(() => t.hidden = true, ms);
 }
 
 /* ---------- feux d'artifice (couleurs des palettes Carasso) ---------- */
@@ -946,7 +972,7 @@ addEventListener("resize", () => Feux.taille());
 
 /* ---------- tiroirs ---------- */
 let cible = null;
-function ouvrir(el, focus) { el.hidden = false; setTimeout(() => focus && focus.focus(), 60); }
+function ouvrir(el, focus) { const t = $(".toast"); if (t) t.hidden = true; el.hidden = false; setTimeout(() => focus && focus.focus(), 60); }
 function fermer() { document.querySelectorAll(".voile").forEach(v => v.hidden = true); cible = null; }
 function ouvrirPoints(id) {
   cible = id; const p = parId(id);
@@ -1012,6 +1038,13 @@ document.addEventListener("click", e => {
     case "cl-maj": case "cl-reessayer": return chargerClassement();
     case "voir-tout": voirTout = !voirTout; return rendreClassement();
     case "decerner": etat.finMode = "general"; return montrer("fin");
+    case "modifier-date": {
+      const pa = partiesToutes().find(x => x.id === etat.partieVue); if (!pa) return;
+      $("#td-texte").textContent = `${pa.jeu} · actuellement le ${dateLongue(pa.date)}.`;
+      $("#td-date").value = jourLocal(new Date(pa.date)); $("#td-date").max = jourLocal(new Date());
+      $("#td-mdp").value = ""; $("#td-erreur").hidden = true;
+      return ouvrir($("#t-date"), $("#td-date"));
+    }
     case "retour-classement": montrer("classement"); if (etat.finMode === "archive") window.scrollTo(0, scrollClassement); return;
     case "tp-plus": case "tp-moins": case "tp-fixer": {
       const v = valeurSaisie(); if (v === null || cible === null) { $("#tp-val").focus(); return; }
@@ -1034,6 +1067,8 @@ $("#te-form").addEventListener("submit", async e => {
   e.preventDefault();
   const jeu = $("#te-jeu").value.trim().replace(/\s+/g, " "), mdp = $("#te-mdp").value;
   if (!jeu) { erreurTiroir("#te-erreur", "Indique le nom du jeu."); return $("#te-jeu").focus(); }
+  const autreJour = $("#te-autre").checked, dateVoulue = $("#te-date").value;
+  if (autreJour && !dateVoulue) { erreurTiroir("#te-erreur", "Choisis la date de la partie."); return $("#te-date").focus(); }
   if (!mdp) { erreurTiroir("#te-erreur", "Saisis le mot de passe."); return $("#te-mdp").focus(); }
   if (!API) return erreurTiroir("#te-erreur", "Le classement général n'est pas encore relié à Google Sheets.");
   // reuse the spelling already used for this game, if any
@@ -1042,17 +1077,38 @@ $("#te-form").addEventListener("submit", async e => {
   const b = $("#te-ok"); b.classList.add("attente"); b.textContent = "Enregistrement…"; $("#te-erreur").hidden = true;
   try {
     const r = await appel({action: "enregistrer", motDePasse: mdp, partie: {
-      jeu: etat.jeu, basGagne: etat.basGagne,
+      jeu: etat.jeu, basGagne: etat.basGagne, ...(autreJour ? {date: dateVoulue} : {}),
       resultats: etat.choisis.map(id => { const p = parId(id); return {id: idGlobal(p), nom: p.nom, score: etat.scores[id] || 0}; })
     }});
     if (!r.ok) { erreurTiroir("#te-erreur", r.erreur || "Enregistrement refusé."); return; }
     etat.enregistree = true; etat.idEnregistre = r.id || ""; sauver();
     majDonnees(r.parties);
     fermer(); majBoutonEnreg();
-    if (etat.vue === "fin") $("#f-jeu").textContent = etat.jeu + " · " + dateDuJour();
-    toast("Partie enregistrée dans le classement général");
+    const enreg = (r.parties || []).find(x => x.id === r.id);
+    if (etat.vue === "fin") $("#f-jeu").textContent = etat.jeu + " · " + (enreg ? new Date(enreg.date).toLocaleDateString("fr-FR", {weekday: "long", day: "numeric", month: "long"}) : dateDuJour());
+    // an outdated script ignores the chosen date
+    if (autreJour && enreg && jourLocal(new Date(enreg.date)) !== dateVoulue) toast("Partie enregistrée à la date du jour. " + SCRIPT_ANCIEN, 8000);
+    else toast("Partie enregistrée dans le classement général");
   } catch (err) {
     erreurTiroir("#te-erreur", "Connexion impossible. Vérifie ta connexion, puis réessaie.");
+  } finally { b.classList.remove("attente"); b.textContent = "Enregistrer"; }
+});
+$("#te-autre").addEventListener("change", e => { $("#te-date").hidden = !e.target.checked; if (e.target.checked) $("#te-date").focus(); });
+$("#td-form").addEventListener("submit", async e => {
+  e.preventDefault();
+  const date = $("#td-date").value, mdp = $("#td-mdp").value;
+  if (!date) { erreurTiroir("#td-erreur", "Choisis une date."); return $("#td-date").focus(); }
+  if (!mdp) { erreurTiroir("#td-erreur", "Saisis le mot de passe."); return $("#td-mdp").focus(); }
+  const b = $("#td-ok"); b.classList.add("attente"); b.textContent = "Enregistrement…"; $("#td-erreur").hidden = true;
+  try {
+    const r = await appel({action: "modifierDate", motDePasse: mdp, id: etat.partieVue, date});
+    if (!r.ok) { erreurTiroir("#td-erreur", r.erreur === "Action inconnue." ? SCRIPT_ANCIEN : (r.erreur || "Modification refusée.")); return; }
+    majDonnees(r.parties); fermer();
+    const pa = partiesToutes().find(x => x.id === etat.partieVue);
+    if (pa && etat.vue === "fin") $("#f-jeu").textContent = surtitreArchive(pa);
+    toast("Date de la partie modifiée");
+  } catch (err) {
+    erreurTiroir("#td-erreur", "Connexion impossible. Vérifie ta connexion, puis réessaie.");
   } finally { b.classList.remove("attente"); b.textContent = "Enregistrer"; }
 });
 $("#tf-form").addEventListener("submit", async e => {
